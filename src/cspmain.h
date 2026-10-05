@@ -1,7 +1,5 @@
 #ifdef VSCIP
-#include <scip/scip.h>
-#include <scip/scipdefplugins.h>
-#include "objscip/objscip.h"
+#include <highs/interfaces/highs_c_api.h>
 #endif
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
@@ -48,8 +46,7 @@ EXPORTFUNC int CSPrelbounds(int,int*,double*,double*,char);
 #ifdef VSCIP
 namespace SCIPv
 {
-extern SCIP *_scip;  
-//extern SCIP_LPI **Env;
+extern void *_scip;
 EXPORTFUNC void CSPSetFileNames(const char*);    
 EXPORTFUNC void CSPFreeFileNames();
 EXPORTFUNC void CSPSetDoubleConstant(const int, double);

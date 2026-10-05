@@ -86,9 +86,7 @@ int     PPCSPrelbounds(int,int*,double*,double*,char);
 // namespace SCIPv
 #ifdef VSCIP
 namespace SCIPv{
-SCIP *_scip;
-//__declspec(dllexport) SCIP_LPI **Env;
-//extern  SCIP_LPI **Env;
+void *_scip;
 void    CSPSetFileNames(const char* dir){ PPCSPSetFileNames(dir); }
 void    CSPFreeFileNames(){ PPCSPFreeFileNames(); }
 void    CSPSetDoubleConstant(const int VarNumber, double VarValue){ PPCSPSetDoubleConstant(VarNumber, VarValue); }

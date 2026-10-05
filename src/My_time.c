@@ -120,13 +120,27 @@
 #endif
 
 #ifdef VAX
-    float seconds()
+    float seconds(void)
     {
          return( (float)clock()/CLK_TCK );
     }
     float elapsed()
     {
          return( (float)clock()/CLK_TCK );
+    }
+#endif
+
+/* Portable fallback for modern compilers (MinGW, macOS, Linux, etc.) where
+ * none of the legacy platform macros above is defined. */
+#if !defined(MICROSOFT2) && !defined(WATCOM) && !defined(BORLAND) && \
+    !defined(HPUX) && !defined(SUN) && !defined(ULTRIX) && !defined(VAX)
+    float seconds(void)
+    {
+         return( (float)clock()/CLOCKS_PER_SEC );
+    }
+    float elapsed()
+    {
+         return( (float)clock()/CLOCKS_PER_SEC );
     }
 #endif
 

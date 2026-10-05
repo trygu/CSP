@@ -599,8 +599,8 @@ void free_col(int index,double *bd)
     JJgetbdu(Nlp,bd+1,j,j);
     ind[0] = ind[1] = j;
 #ifdef VSCIP
-    value[0] = -SCIPlpiInfinity(Nlp);
-    value[1] = SCIPlpiInfinity(Nlp);
+    value[0] = -1e20;
+    value[1] =  1e20;
 #endif
 #ifdef CPLEX5 // Also CPLEX7
     value[0] = -CPX_INFBOUND; //-INFBOUND;

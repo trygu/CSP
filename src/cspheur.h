@@ -1,7 +1,4 @@
 #ifdef VSCIP
-#include <scip/scip.h>
-#include <scip/scipdefplugins.h>
-#include "objscip/objscip.h"
-
+#include <highs/interfaces/highs_c_api.h>
 #endif
 int    heuristic(int);

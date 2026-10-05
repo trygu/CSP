@@ -28,102 +28,11 @@
 #define JJ_NETINFEASIBLE               -2
 #define JJ_NETUNBOUNDED                -3
 
-#ifdef CPLEX3
-#define  SYSWAT386
-#include "c:\cplex\cpxdefs.inc"
-typedef CPXLPptr JJLPptr;
-#endif
-
-#ifdef CPLEX7
-#include <cplex.h>
-#define CPLEX5
-#endif
-
-#ifdef CPLEX5
-#define  SYSWAT386
-#ifndef CPLEX7
-#include "c:\cplex50\cplex.h"
-#endif
-typedef CPXLPptr JJLPptr;
-//static CPXENVptr Env = NULL;         /* CPLEX enviroment               */
-//static unsigned int lpJJ;            /* for counting the loaded LP's   */
-#endif
-
-
-#ifdef XPRESS11
-#define XPRESS
-#endif
-
-// Added PWOF, to include XPRESS version 13
-#ifdef XPRESS_13
-#define DLL
-#include "xprs.h"
-struct JJLP{
-    XPRSprob prob;
-    int      objsen;
-};
-
-typedef struct JJLP *JJLPptr;
-//static unsigned int lpJJ = 0;
-#endif
-// End added PWOF, to include XPRESS version 13
-
-#ifdef XPRESS
-//#define DLL
-
-#ifdef XPRESS11
-#include "xpresso.h"
-//#include "c:\xpress11\xpresso.h"        Attentive with output(,)
-//#define XOSLDIR "c:\\xpress11"
-   #define XOSLDIR NULL            //set XPRESSMP in  "autoexec.bat"
-   #define XOSLMEM 0
-#endif //#else
-#ifdef XPRESS10
-   #include "c:\xpress10\w32_osl\xpresso.h"
-   #define XOSLDIR "c:\\xpress10\\w32_osl"
-   #define XOSLMEM 16000000
-#endif
-struct JJLP {
-        int ref;
-        int objsen;
-};
-typedef struct JJLP *JJLPptr;
-static JJLPptr current_lp = NULL;
-//static unsigned int lpJJ;            /* for counting the loaded LP's   */
-static void JJcheck(JJLPptr);
-
-static void JJcheck(JJLPptr lp)
-{
-    if(lp==NULL){
-        fprintf(stderr,"JJ ERROR: not lp\n");
-        CSPexit(EXIT_LPSOLVER); //exit(1);
-    }
-    if(lp != current_lp){
-        if( current_lp ){
-            if( savmat( &(current_lp->ref) ) ){
-                fprintf(stderr,"JJ ERROR: not savmat()\n");
-                CSPexit(EXIT_LPSOLVER); //exit(1);
-            }
-        }
-        current_lp = lp;
-        if( resmat( current_lp->ref ) ){
-            fprintf(stderr,"JJ ERROR: not resmat()\n");
-            CSPexit(EXIT_LPSOLVER); //exit(1);
-        }
-    }
-}
-#endif
-
 #ifdef VSCIP
-#include <scip/scip.h>
-#include <scip/scipdefplugins.h>
-#include "objscip/objscip.h"
+#include <highs/interfaces/highs_c_api.h>
 
-typedef SCIP_LPI *JJLPptr;
-// Moved to JJsolver.c, because only used there, not in other files where jjsolver.h is included
-//static JJLPptr *Env = NULL;
-//static unsigned int lpJJ = 0;            /* for counting the loaded LP's   */
-//static bool dual = false;
+/* The HiGHS instance is an opaque void* in the C API. */
+typedef void* JJLPptr;
 #endif
 
 #include <iostream>
