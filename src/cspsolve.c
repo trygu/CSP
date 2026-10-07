@@ -367,8 +367,13 @@ int add_rows(int rcnt,CONSTRAINT **queue)
             std::cout << "ERROR: too many LP rows: " << mar+rcnt << std::endl;
             CSPexit(EXIT_ERROR); //exit(1);
         }
-        largemem = rcnt * mac;
-        if(( rhs=(double *)malloc( sizeof(double)*rcnt ) )==NULL){                
+        /* Each row written by add_row() stores at most one nonzero per real
+           LP column (columns 1..mac-1; the dummy column 0 is never in a cut),
+           so a row needs at most (mac-1) slots. Size the buffers with a safe
+           margin. (The legacy RHS sentinel on column 0 is no longer written
+           under the HiGHS backend -- see add_row.) */
+        largemem = rcnt * (mac + 1);
+        if(( rhs=(double *)malloc( sizeof(double)*rcnt ) )==NULL){
                 std::cout << "There is not enough memory for vector RHS" << std::endl;
                 CSPexit(EXIT_MEMO); //exit(1);
         }
@@ -505,10 +510,13 @@ static int add_row(CONSTRAINT *con,double *rhs,char   *sense,int    *rmatind,dou
             }
     }
 #endif
-    rmatind[l] = 0;
-    rmatval[l] = *rhs;
-    l++;
-#ifdef STAMP    
+    /* The old CPLEX/XPRESS back-ends read the row RHS from a sentinel entry
+       (column 0) appended to each row. The HiGHS backend receives the RHS
+       separately (via the row lower/upper bounds in JJaddrows), so the
+       sentinel must NOT be written: it would inject a spurious coefficient
+       on the dummy column 0 and corrupt the matrix. The *rhs adjustment for
+       FIX_UB columns above already made *rhs the true effective RHS. */
+#ifdef STAMP
     control_constraint( con );
 #endif
 
@@ -785,9 +793,9 @@ double solve_lp(int cleaning)
 {
     double lb;
     float  t1;
-    
+
     t1 = seconds();
-    if ( JJdualopt(lp) ){        
+    if ( JJdualopt(lp) ){
         std::cout << " it was not possible to solve with DUALOPT " << std::endl;
         CSPexit(EXIT_LPSOLVER); //exit(1);
     }
