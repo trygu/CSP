@@ -18,6 +18,7 @@ set(CSP_SRC
     src/Jjsolver.c
     src/MT1RC.c
     src/My_time.c
+    src/cspaudit.c
     src/cspback.c
     src/cspbranc.c
     src/cspcapa.c
