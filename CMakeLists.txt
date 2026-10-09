@@ -52,6 +52,12 @@ target_include_directories(tauargus_csp
 
 target_compile_definitions(tauargus_csp PUBLIC VSCIP)
 
+# Not every public function carries an export macro (e.g. TauAuditJj used by
+# the Python bindings), so export all symbols from the Windows DLL.
+if(WIN32)
+    set_target_properties(tauargus_csp PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
 target_link_libraries(tauargus_csp PUBLIC highs::highs)
 
 target_compile_options(tauargus_csp PRIVATE
