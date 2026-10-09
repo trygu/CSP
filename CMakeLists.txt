@@ -16,7 +16,7 @@ set(CSP_SRC
     src/Cspmain.c
     src/Cspnet.c
     src/Jjsolver.c
-    src/MT1RC.c
+    src/MT1RC.C
     src/My_time.c
     src/cspaudit.c
     src/cspback.c

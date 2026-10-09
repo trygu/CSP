@@ -18,6 +18,7 @@
 #include <string.h>
 #include <math.h>
 #include <iostream>
+#include <vector>
 #include "Cspdefns.h"
 #include "CSPGLOB.H"
 #include "cspmain.h"
@@ -314,7 +315,8 @@ int  PPCSPoptimize(IProgressListener* ProgressListener)
 {
     int        k,lcuts,upperb_root=0,upperb_init=0,nbr,old_ub,root,lprows,rowsinit,initpl;
     int        res_prep;
-    CONSTRAINT *stack[MAX_CUTS_ITER];
+    std::vector<CONSTRAINT*> stack_buf(MAX_CUTS_ITER);
+    CONSTRAINT **stack = stack_buf.data();
 
     float      t1,tprep,theur0,theur1,troot,tseparation,tstart;
     double     lowerb_root;
