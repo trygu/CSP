@@ -340,7 +340,7 @@ int JJgetbdl (JJLPptr lp, double *bd, int begin, int end)
     double* hi = (double*)malloc(n * sizeof(double));
     HighsInt num_col = n, num_nz = 0;
     Highs_getColsByRange(lp, begin, end, &num_col, NULL, lo, hi, &num_nz, NULL, NULL, NULL);
-    for (int i = 0; i < n; i++) bd[begin + i] = lo[i];
+    for (int i = 0; i < n; i++) bd[i] = lo[i];
     free(lo); free(hi);
     return 0;
 }
@@ -352,7 +352,7 @@ int JJgetbdu (JJLPptr lp, double *bd, int begin, int end)
     double* hi = (double*)malloc(n * sizeof(double));
     HighsInt num_col = n, num_nz = 0;
     Highs_getColsByRange(lp, begin, end, &num_col, NULL, lo, hi, &num_nz, NULL, NULL, NULL);
-    for (int i = 0; i < n; i++) bd[begin + i] = hi[i];
+    for (int i = 0; i < n; i++) bd[i] = hi[i];
     free(lo); free(hi);
     return 0;
 }
