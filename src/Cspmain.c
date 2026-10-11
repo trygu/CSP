@@ -613,6 +613,19 @@ int PPCSPloadprob(int nsums_,double *rhs_,int ncells_,double *data_,int  *weight
     VARIABLE *col;
     struct   CELDA *c;
 
+    /* Reset all global problem counters at entry so that a failed load
+       leaves a consistent (empty) problem.  Legacy bug: a second FullJJ
+       run on a table containing secondary ('m') cells failed in the cell
+       status loop below, but nrows & co. still held the values of the
+       previous run; PPCSPfreeprob then walked a garbage row pool and
+       crashed the process.  With zeroed counters the free loops in
+       PPCSPfreeprob are no-ops and the (freshly allocated) buffers are
+       simply released. */
+    Rncells = Rnsums = nsensitive = nprot_level = 0;
+    ncols = nrows = mac = mar = 0;
+    iterations = branchs = ntail = nsupport = nbetter = 0;
+    CSPcells = CSPnsums = 0;
+
     //filenameA = _getcwd(NULL, 0);
     //filenameA.append("\\logfile.txt");
     //filestr.open (filenameA.c_str());//logfile);     // Salome modified 31/01/2014
@@ -992,6 +1005,13 @@ static void delsumcell(int  sum ,int  cell ,double  data ,double * rhs )
 static int change_status(char * ccc )
 
 {
+     /* Only the primary suppression statuses are understood by the
+        optimizer.  Secondary ('m') cells are already suppressed by a
+        previous run, so they are NOT re-optimized: a JJ file that still
+        contains 'm' cells is rejected (HITAS_JJNOTLOADED, code 5008).
+        This matches the legacy behavior -- re-running OPT on a table
+        that already carries secondary suppression is an error, it is
+        just no longer a crash (see the counter reset in PPCSPloadprob). */
      switch( *ccc ){
         case 's': return(0);
         case 'u': return(2);
@@ -1201,6 +1221,13 @@ int PPCSPfreeprob()
      cind = NULL; /*PWOF*/
      free((void *)rind);
      rind = NULL; /*PWOF*/
+     /* Reset all counters so that the global state is a consistent empty
+        problem and any further call to PPCSPfreeprob is a harmless no-op
+        instead of operating on stale counters. */
+     Rncells = Rnsums = nsensitive = nprot_level = 0;
+     ncols = nrows = mac = mar = 0;
+     iterations = branchs = ntail = nsupport = nbetter = 0;
+     CSPcells = CSPnsums = 0;
      return 0;
 }
 
