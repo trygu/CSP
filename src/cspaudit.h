@@ -26,6 +26,12 @@
 #ifndef CSPAUDIT_H
 #define CSPAUDIT_H
 
+#if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__)
+    #define EXPORTFUNC __declspec(dllexport)
+#else
+    #define EXPORTFUNC __attribute__ ((visibility("default")))
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -52,7 +58,7 @@ extern "C" {
  * On rc != 0 no arrays are returned and TauAuditJjFree is not needed.
  * On rc == 0 with *n_out > 0 the caller must free via TauAuditJjFree.
  */
-int TauAuditJj(const char *jjfile,
+EXPORTFUNC int TauAuditJj(const char *jjfile,
                int *n_out,
                long **cell_idx,
                double **a_min,
@@ -62,7 +68,7 @@ int TauAuditJj(const char *jjfile,
                int **a_unsafe);
 
 /* Release the arrays returned by TauAuditJj. */
-void TauAuditJjFree(int n, long *cell_idx, double *a_min, double *a_max,
+EXPORTFUNC void TauAuditJjFree(int n, long *cell_idx, double *a_min, double *a_max,
                     double *a_value, char *a_status, int *a_unsafe);
 
 #ifdef __cplusplus
