@@ -13,7 +13,8 @@
 //   - real cost change: forwarded (solved state reset)
 //   - JJaddcols: the shadow is extended with the new column costs
 //   - JJaddrows(ccnt > 0): the shadow is extended with zero costs
-//   - JJdelcols: the shadow is compacted (column index shift)
+//   - JJdelcols, JJdelsetcols: the shadow is compacted (column index
+//     shift)
 //   - drift: a desynchronized shadow is dropped on delete, and
 //     changes are then forwarded (never mis-skipped)
 //   - free/recreate: the shadow is erased on free and reinstalled on
@@ -196,6 +197,30 @@ int main()
         read_costs(lp, 0, 0, c);
         CHECK(c[0] == 9.9);
         JJfreeprob(&lp);
+    }
+
+    // T5b: JJdelsetcols compacts the shadow the same way as JJdelcols
+    // (non-contiguous delete set, column index shift).
+    {
+        JJLPptr lp = load_lp((const double[]){ 1.0, 2.0, 3.0 });
+        CHECK(lp != (JJLPptr)0);
+        CHECK(Highs_run(lp) == kHighsStatusOk);
+        CHECK(hstat(lp) == kHighsModelStatusOptimal);
+        int delstat[3] = { 1, 0, 1 };   // drop columns 0 and 2
+        CHECK(JJdelsetcols(lp, delstat) == 0);
+        double c[1];
+        read_costs(lp, 0, 0, c);
+        CHECK(c[0] == 2.0);             // column 1 shifted to index 0
+        CHECK(Highs_run(lp) == kHighsStatusOk);
+        CHECK(hstat(lp) == kHighsModelStatusOptimal);
+        JJchgcoef(lp, -1, 0, 2.0);      // no-op at the shifted index
+        CHECK(hstat(lp) == kHighsModelStatusOptimal);
+        JJchgcoef(lp, -1, 0, 2.5);      // real change
+        CHECK(hstat(lp) != kHighsModelStatusOptimal);
+        read_costs(lp, 0, 0, c);
+        CHECK(c[0] == 2.5);
+        JJfreeprob(&lp);
+        CHECK(JJtest_shadowCount() == 0);
     }
 
     // T8: JJchgobj batch path: skip and apply are per element.
