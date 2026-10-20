@@ -36,6 +36,11 @@ struct JjCostShadow {
 };
 static std::unordered_map<const void*, JjCostShadow> g_costshadow;
 
+/* Compacts the shadow after Highs_deleteColsByMask. HiGHS reuses the
+ * mask array in place: on return, mask[i] is the new index of kept
+ * column i (>= 0) or -1 for a deleted column. Kept columns keep their
+ * relative order, so filtering the old order by mask[i] >= 0 yields
+ * the shadow in the new column order. */
 static void jj_shadow_delcols(const void* lp, HighsInt mac, const HighsInt* mask)
 {
     auto sit = g_costshadow.find(lp);
@@ -49,7 +54,7 @@ static void jj_shadow_delcols(const void* lp, HighsInt mac, const HighsInt* mask
     std::vector<double> keep;
     keep.reserve((size_t)mac);
     for (HighsInt i = 0; i < mac; i++)
-        if (!mask[i]) keep.push_back(sit->second.cost[i]);
+        if (mask[i] >= 0) keep.push_back(sit->second.cost[i]);
     sit->second.cost.swap(keep);
 }
 
