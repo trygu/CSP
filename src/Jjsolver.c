@@ -15,7 +15,66 @@
 #include <stdlib.h>
 #include <string.h>
 #include <cstring>
+#include <unordered_map>
+#include <vector>
 #include "Jjsolver.h"
+
+/* Shadow objective for skipping no-op cost changes.
+ * The LP pointer is the key; what makes it a valid identity is the
+ * lifecycle pairing below (every HiGHS object is created in
+ * JJloadprob and destroyed in JJfreeprob, nothing else):
+ *   JJloadprob                     install from the passed objective
+ *   JJaddcols, JJaddrows(ccnt>0)   extend with the new column costs
+ *   JJdelcols, JJdelsetcols        compact with the delete mask
+ *   JJfreeprob                     erase before Highs_destroy
+ * A cost change equal to the shadowed value (exact double equality)
+ * is not forwarded to HiGHS: the model is left untouched, so any
+ * solver state HiGHS has cached stays valid. The shadow is updated
+ * only after a successful HiGHS call. */
+struct JjCostShadow {
+    std::vector<double> cost;
+};
+static std::unordered_map<const void*, JjCostShadow> g_costshadow;
+
+/* Compacts the shadow after Highs_deleteColsByMask. HiGHS reuses the
+ * mask array in place: on return, mask[i] is the new index of kept
+ * column i (>= 0) or -1 for a deleted column. Kept columns keep their
+ * relative order, so filtering the old order by mask[i] >= 0 yields
+ * the shadow in the new column order. */
+static void jj_shadow_delcols(const void* lp, HighsInt mac, const HighsInt* mask)
+{
+    auto sit = g_costshadow.find(lp);
+    if (sit == g_costshadow.end()) return;
+    if (sit->second.cost.size() != (size_t)mac) {
+        /* drift: stop skipping for this LP rather than risk a
+         * wrong skip on a stale index mapping */
+        g_costshadow.erase(sit);
+        return;
+    }
+    std::vector<double> keep;
+    keep.reserve((size_t)mac);
+    for (HighsInt i = 0; i < mac; i++)
+        if (mask[i] >= 0) keep.push_back(sit->second.cost[i]);
+    sit->second.cost.swap(keep);
+}
+
+#ifdef TAUARGUS_CSP_UNIT_TEST
+/* Test-only: desynchronize the shadow from the model so the next column
+ * delete exercises the drift fallback (the shadow must be dropped, and
+ * changes must then be forwarded, never mis-skipped). */
+void JJtest_corruptCostShadow(JJLPptr lp)
+{
+    auto sit = g_costshadow.find(lp);
+    if (sit != g_costshadow.end())
+        sit->second.cost.resize(sit->second.cost.size() + 1);
+}
+
+/* Test-only: number of live shadows (verify install/free pairing). */
+long JJtest_shadowCount(void)
+{
+    return (long)g_costshadow.size();
+}
+#endif
 
 extern char* fproblemlp;
 extern double FEAS_TOL;
@@ -141,6 +200,11 @@ unsigned colnamespace, unsigned rownamespace, unsigned rimnamespace
         return NULL;
     }
 
+    {
+        JjCostShadow& sh = g_costshadow[H];
+        sh.cost.assign(obj, obj + mac);
+    }
+
     lpJJ++;
     return H;
 }
@@ -148,6 +212,7 @@ unsigned colnamespace, unsigned rownamespace, unsigned rimnamespace
 void JJfreeprob (JJLPptr *lp)
 {
     if (lp == NULL || *lp == NULL) return;
+    g_costshadow.erase(*lp);
     Highs_destroy(*lp);
     *lp = NULL;
     if (lpJJ > 0) lpJJ--;
@@ -556,7 +621,12 @@ int JJaddrows (JJLPptr lp, int ccnt, int rcnt, int nzcnt, double *rhs, char *sen
             lo[j]     = 0.0;
             hi[j]     = JJ_HIGHS_INF;
         }
-        Highs_addCols(lp, ccnt, costs, lo, hi, 0, starts, NULL, NULL);
+        HighsInt stc = Highs_addCols(lp, ccnt, costs, lo, hi, 0, starts, NULL, NULL);
+        if (stc == kHighsStatusOk) {
+            auto sit = g_costshadow.find(lp);
+            if (sit != g_costshadow.end())
+                sit->second.cost.resize(sit->second.cost.size() + ccnt, 0.0);
+        }
         free(starts); free(costs); free(lo); free(hi);
         (void)oldmac;
     }
@@ -578,6 +648,11 @@ int JJaddcols (JJLPptr lp, int ccnt, int nzcnt, double *cobj, int *cmatbeg,
 {
     (void)colname;
     HighsInt st = Highs_addCols(lp, ccnt, cobj, cbdl, cbdu, nzcnt, cmatbeg, cmatind, cmatval);
+    if (st == kHighsStatusOk) {
+        auto sit = g_costshadow.find(lp);
+        if (sit != g_costshadow.end())
+            sit->second.cost.insert(sit->second.cost.end(), cobj, cobj + ccnt);
+    }
     return (st != kHighsStatusOk) ? 1 : 0;
 }
 
@@ -607,6 +682,7 @@ int JJdelcols (JJLPptr lp, int begin, int end)
     HighsInt* mask = (HighsInt*)calloc(mac, sizeof(HighsInt));
     for (HighsInt i = begin; i <= end; i++) mask[i] = 1;
     HighsInt st = Highs_deleteColsByMask(lp, mask);
+    if (st == kHighsStatusOk) jj_shadow_delcols(lp, mac, mask);
     free(mask);
     return (st != kHighsStatusOk) ? 1 : 0;
 }
@@ -617,6 +693,7 @@ int JJdelsetcols (JJLPptr lp, int *delstat)
     HighsInt* mask = (HighsInt*)calloc(mac, sizeof(HighsInt));
     for (HighsInt i = 0; i < mac; i++) mask[i] = delstat[i] ? 1 : 0;
     HighsInt st = Highs_deleteColsByMask(lp, mask);
+    if (st == kHighsStatusOk) jj_shadow_delcols(lp, mac, mask);
     free(mask);
     return (st != kHighsStatusOk) ? 1 : 0;
 }
@@ -624,8 +701,17 @@ int JJdelsetcols (JJLPptr lp, int *delstat)
 int JJchgcoef (JJLPptr lp, int i, int j, double newvalue)
 {
     if (i == -1) {
-        /* change objective cost of column j */
-        Highs_changeColCost(lp, j, newvalue);
+        /* change objective cost of column j; skip when the value is
+         * already in effect (exact equality against the shadow) */
+        auto sit = g_costshadow.find(lp);
+        if (sit != g_costshadow.end() && j >= 0
+            && (size_t)j < sit->second.cost.size()
+            && sit->second.cost[j] == newvalue)
+            return 0;
+        HighsInt st = Highs_changeColCost(lp, j, newvalue);
+        if (st == kHighsStatusOk && sit != g_costshadow.end() && j >= 0
+            && (size_t)j < sit->second.cost.size())
+            sit->second.cost[j] = newvalue;
         return 0;
     }
     if (j == -1) {
@@ -634,9 +720,17 @@ int JJchgcoef (JJLPptr lp, int i, int j, double newvalue)
         double* hi = (double*)malloc(sizeof(double));
         HighsInt num_row = 1, num_nz = 0;
         Highs_getRowsByRange(lp, i, i, &num_row, lo, hi, &num_nz, NULL, NULL, NULL);
-        if (JJ_isinf(lo[0]))      Highs_changeRowBounds(lp, i, lo[0], newvalue);
-        else if (JJ_isinf(hi[0])) Highs_changeRowBounds(lp, i, newvalue, hi[0]);
-        else                      Highs_changeRowBounds(lp, i, newvalue, newvalue);
+        /* skip when the bound is already at the requested value
+         * (exact equality; the lookup above is needed for the
+         * opposite bound anyway) */
+        if (JJ_isinf(lo[0])) {
+            if (hi[0] != newvalue) Highs_changeRowBounds(lp, i, lo[0], newvalue);
+        } else if (JJ_isinf(hi[0])) {
+            if (lo[0] != newvalue) Highs_changeRowBounds(lp, i, newvalue, hi[0]);
+        } else {
+            if (lo[0] != newvalue || hi[0] != newvalue)
+                Highs_changeRowBounds(lp, i, newvalue, newvalue);
+        }
         free(lo); free(hi);
         return 0;
     }
@@ -652,9 +746,17 @@ int JJchgbds (JJLPptr lp, int cnt, int *index, char *lu, double *bd)
         double* hi = (double*)malloc(sizeof(double));
         HighsInt num_col = 1, num_nz = 0;
         Highs_getColsByRange(lp, k, k, &num_col, NULL, lo, hi, &num_nz, NULL, NULL, NULL);
-        if (lu[i] == 'L')      Highs_changeColBounds(lp, k, bd[i], hi[0]);
-        else if (lu[i] == 'U') Highs_changeColBounds(lp, k, lo[0], bd[i]);
-        else                   Highs_changeColBounds(lp, k, bd[i], bd[i]);
+        /* skip when the bound is already at the requested value
+         * (exact equality; the lookup above is needed for the
+         * opposite bound anyway) */
+        if (lu[i] == 'L') {
+            if (lo[0] != bd[i]) Highs_changeColBounds(lp, k, bd[i], hi[0]);
+        } else if (lu[i] == 'U') {
+            if (hi[0] != bd[i]) Highs_changeColBounds(lp, k, lo[0], bd[i]);
+        } else {
+            if (lo[0] != bd[i] || hi[0] != bd[i])
+                Highs_changeColBounds(lp, k, bd[i], bd[i]);
+        }
         free(lo); free(hi);
     }
     return 0;
@@ -662,8 +764,17 @@ int JJchgbds (JJLPptr lp, int cnt, int *index, char *lu, double *bd)
 
 int JJchgobj (JJLPptr lp, int cnt, int *index, double *obj)
 {
-    for (int i = 0; i < cnt; i++)
-        Highs_changeColCost(lp, index[i], obj[i]);
+    auto sit = g_costshadow.find(lp);
+    for (int i = 0; i < cnt; i++) {
+        if (sit != g_costshadow.end() && index[i] >= 0
+            && (size_t)index[i] < sit->second.cost.size()
+            && sit->second.cost[index[i]] == obj[i])
+            continue;
+        HighsInt st = Highs_changeColCost(lp, index[i], obj[i]);
+        if (st == kHighsStatusOk && sit != g_costshadow.end() && index[i] >= 0
+            && (size_t)index[i] < sit->second.cost.size())
+            sit->second.cost[index[i]] = obj[i];
+    }
     return 0;
 }
 
