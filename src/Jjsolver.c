@@ -58,6 +58,24 @@ static void jj_shadow_delcols(const void* lp, HighsInt mac, const HighsInt* mask
     sit->second.cost.swap(keep);
 }
 
+#ifdef TAUARGUS_CSP_UNIT_TEST
+/* Test-only: desynchronize the shadow from the model so the next column
+ * delete exercises the drift fallback (the shadow must be dropped, and
+ * changes must then be forwarded, never mis-skipped). */
+void JJtest_corruptCostShadow(JJLPptr lp)
+{
+    auto sit = g_costshadow.find(lp);
+    if (sit != g_costshadow.end())
+        sit->second.cost.resize(sit->second.cost.size() + 1);
+}
+
+/* Test-only: number of live shadows (verify install/free pairing). */
+long JJtest_shadowCount(void)
+{
+    return (long)g_costshadow.size();
+}
+#endif
+
 extern char* fproblemlp;
 extern double FEAS_TOL;
 extern double OPT_TOL;
