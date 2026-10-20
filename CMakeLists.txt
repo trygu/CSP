@@ -84,19 +84,24 @@ install(TARGETS tauargus_csp
     ARCHIVE DESTINATION lib
 )
 
-# Adapter lifecycle tests (run by the parent repo's dev loop,
-# scripts/dev-test.sh). The test hooks (JJtest_corruptCostShadow,
-# JJtest_shadowCount) are compiled into the library only when tests
-# are enabled.
+# Adapter tests (run by the parent repo's dev loop,
+# scripts/dev-test.sh). The lifecycle test hooks
+# (JJtest_corruptCostShadow, JJtest_shadowCount) are compiled
+# into the library only when tests are enabled.
 option(TAUARGUS_CSP_BUILD_TESTS "Build csp adapter tests" OFF)
 if(TAUARGUS_CSP_BUILD_TESTS)
     enable_testing()
     target_compile_definitions(tauargus_csp PRIVATE TAUARGUS_CSP_UNIT_TEST)
     add_executable(csp_adapter_lifecycle_tests tests/adapter_lifecycle_test.cpp)
     target_link_libraries(csp_adapter_lifecycle_tests PRIVATE tauargus_csp)
+    add_executable(csp_adapter_bounds_tests tests/adapter_bounds_test.cpp)
+    target_link_libraries(csp_adapter_bounds_tests PRIVATE tauargus_csp)
     # Jjsolver.h includes cspmain.h, which needs the hitas callback
     # headers (a PRIVATE include of the library, so not inherited).
     target_include_directories(csp_adapter_lifecycle_tests
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
+    target_include_directories(csp_adapter_bounds_tests
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
     add_test(NAME adapter_lifecycle COMMAND csp_adapter_lifecycle_tests)
+    add_test(NAME adapter_bounds COMMAND csp_adapter_bounds_tests)
 endif()
