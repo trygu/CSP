@@ -697,9 +697,17 @@ int JJchgcoef (JJLPptr lp, int i, int j, double newvalue)
         double* hi = (double*)malloc(sizeof(double));
         HighsInt num_row = 1, num_nz = 0;
         Highs_getRowsByRange(lp, i, i, &num_row, lo, hi, &num_nz, NULL, NULL, NULL);
-        if (JJ_isinf(lo[0]))      Highs_changeRowBounds(lp, i, lo[0], newvalue);
-        else if (JJ_isinf(hi[0])) Highs_changeRowBounds(lp, i, newvalue, hi[0]);
-        else                      Highs_changeRowBounds(lp, i, newvalue, newvalue);
+        /* skip when the bound is already at the requested value
+         * (exact equality; the lookup above is needed for the
+         * opposite bound anyway) */
+        if (JJ_isinf(lo[0])) {
+            if (hi[0] != newvalue) Highs_changeRowBounds(lp, i, lo[0], newvalue);
+        } else if (JJ_isinf(hi[0])) {
+            if (lo[0] != newvalue) Highs_changeRowBounds(lp, i, newvalue, hi[0]);
+        } else {
+            if (lo[0] != newvalue || hi[0] != newvalue)
+                Highs_changeRowBounds(lp, i, newvalue, newvalue);
+        }
         free(lo); free(hi);
         return 0;
     }
@@ -715,9 +723,17 @@ int JJchgbds (JJLPptr lp, int cnt, int *index, char *lu, double *bd)
         double* hi = (double*)malloc(sizeof(double));
         HighsInt num_col = 1, num_nz = 0;
         Highs_getColsByRange(lp, k, k, &num_col, NULL, lo, hi, &num_nz, NULL, NULL, NULL);
-        if (lu[i] == 'L')      Highs_changeColBounds(lp, k, bd[i], hi[0]);
-        else if (lu[i] == 'U') Highs_changeColBounds(lp, k, lo[0], bd[i]);
-        else                   Highs_changeColBounds(lp, k, bd[i], bd[i]);
+        /* skip when the bound is already at the requested value
+         * (exact equality; the lookup above is needed for the
+         * opposite bound anyway) */
+        if (lu[i] == 'L') {
+            if (lo[0] != bd[i]) Highs_changeColBounds(lp, k, bd[i], hi[0]);
+        } else if (lu[i] == 'U') {
+            if (hi[0] != bd[i]) Highs_changeColBounds(lp, k, lo[0], bd[i]);
+        } else {
+            if (lo[0] != bd[i] || hi[0] != bd[i])
+                Highs_changeColBounds(lp, k, bd[i], bd[i]);
+        }
         free(lo); free(hi);
     }
     return 0;
