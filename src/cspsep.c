@@ -17,6 +17,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include <iostream>
+#include <cmath>
+#include <cstdint>
 #include "Cspdefns.h"
 #include "CSPGLOB2.H"
 #include "cspsep.h"
@@ -168,11 +170,24 @@ static int separa_pool(int *card,CONSTRAINT **stack)
     return(num);
 }
 
+// A cut hash is an index weight, not a random sample. Keep it stateless
+// so deduplication does not seed or consume the host process's C RNG.
+static std::uint32_t index_weight(int index)
+{
+    std::uint32_t value = static_cast<std::uint32_t>(index);
+    value ^= value >> 16;
+    value *= UINT32_C(0x7feb352d);
+    value ^= value >> 15;
+    value *= UINT32_C(0x846ca68b);
+    value ^= value >> 16;
+    return value & UINT32_C(0x7fff);
+}
+
 static long int   hash(CONSTRAINT *con)
 
 {
     int k;
-    long int val=0;
+    long double val=0;
     double   rhs;
 
     rhs = con->rhs;
@@ -186,28 +201,29 @@ static long int   hash(CONSTRAINT *con)
         val = 0;
         k = con->card;
         while(k--){
-            srand( con->stack[k]->index );
-            val += rand() * ((long unsigned int)(con->stack[k]->index) * (con->coef[k])) / rhs;
+            val += std::trunc(static_cast<long double>(index_weight(con->stack[k]->index)) *
+                              con->stack[k]->index * con->coef[k] / rhs);
         }
         break;
     case COVER :
         val = (long int)con->rhs;
         k = con->con->card;
         while(k--){
-            srand( con->con->stack[k]->index );
-            val += (long int)rand() * 2 * con->con->stack[k]->index;
+            val += static_cast<long double>(index_weight(con->con->stack[k]->index)) *
+                   2 * con->con->stack[k]->index;
         }
         k = con->card;
         while(k--){
-            srand( con->stack[k]->index );
-            val -= (long int)rand() * 2* con->stack[k]->index;
+            val -= static_cast<long double>(index_weight(con->stack[k]->index)) *
+                   2 * con->stack[k]->index;
         }
         break;
     default:        
         std::cout << "ERROR: un-considered constraint " << con->type << std::endl;
         CSPexit(EXIT_ERROR); //exit(1);
     }
-    return( val );
+    // A signed 31-bit result fits long on Windows and Unix.
+    return static_cast<long>(std::fmod(val, 2147483647.0L));
 }
 
 
