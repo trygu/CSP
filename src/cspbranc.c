@@ -180,12 +180,12 @@ int read_prob()
 
     for(k=0;k<ncols;k++)
          columns[k].stat = FIX_LB;
-    fscanf(pfile,"%d",&cont);
+    if (fscanf(pfile,"%d",&cont) != 1) goto invalid_branch;
     for(k=0;k<cont;k++){
-         fscanf(pfile,"%p %d",&col,&l);
+         if (fscanf(pfile,"%p %d",&col,&l) != 2) goto invalid_branch;
          col->stat = l;
     }
-    fscanf(pfile,"%d",&lcuts);
+    if (fscanf(pfile,"%d",&lcuts) != 1) goto invalid_branch;
 
     if(lcuts){
          stack = (CONSTRAINT **)malloc( lcuts * sizeof( CONSTRAINT *) );
@@ -194,7 +194,7 @@ int read_prob()
               CSPexit(EXIT_MEMO); //exit(1);
          }
          for(k=0;k<lcuts;k++){
-              fscanf(pfile,"%p",stack+k);
+              if (fscanf(pfile,"%p",stack+k) != 1) goto invalid_branch;
               stack[k]->stat = 0;
          }
     }
@@ -210,6 +210,12 @@ int read_prob()
     setup_lp();
     get_solution();
     return(1);
+
+invalid_branch:
+    free(stack);
+    fclose(pfile);
+    CSPexit(EXIT_ERROR);
+    return 0;
 }
 
 int var_branching()

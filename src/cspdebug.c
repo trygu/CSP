@@ -338,10 +338,18 @@ void read_heuristic(char *name)
         std::cout << "ERROR: not possible to open " << name << std::endl;
         CSPexit(EXIT_ERROR); //exit(1);
     }
-    fscanf(file,"%d\n",&nbetter);
+    if (fscanf(file,"%d\n",&nbetter) != 1) {
+        fclose(file);
+        CSPexit(EXIT_ERROR);
+        return;
+    }
     upperb = 0;
     for(i=0;i<nbetter;i++){
-        fscanf(file,"%d\n",&col);
+        if (fscanf(file,"%d\n",&col) != 1 || col < 0 || col >= ncols) {
+            fclose(file);
+            CSPexit(EXIT_ERROR);
+            return;
+        }
         std::cout << col << " ;";
         better[i] = columns + col;
         upperb += columns[ col ].weight;
