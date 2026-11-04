@@ -8,6 +8,11 @@
 
 cmake_minimum_required(VERSION 3.16)
 
+# Honor LANGUAGE CXX for legacy .c files without compiler suffix warnings.
+if(POLICY CMP0119)
+    cmake_policy(SET CMP0119 NEW)
+endif()
+
 project(tauargus_csp CXX)
 
 set(CSP_SRC
