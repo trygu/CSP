@@ -45,8 +45,12 @@ if(NOT DEFINED TAUARGUS_HIGHS_VERSION AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/..
 endif()
 find_package(Highs ${TAUARGUS_HIGHS_VERSION} REQUIRED)
 
-add_library(tauargus_csp SHARED ${CSP_SRC})
+option(BUILD_SHARED_LIBS "Build shared native libraries" ON)
+add_library(tauargus_csp ${CSP_SRC})
 add_library(tauargus::csp ALIAS tauargus_csp)
+if(NOT BUILD_SHARED_LIBS)
+    target_compile_definitions(tauargus_csp PUBLIC TAUARGUS_STATIC)
+endif()
 
 target_include_directories(tauargus_csp
     PUBLIC
