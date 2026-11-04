@@ -343,6 +343,9 @@ int TauAuditJj(const char *jjfile,
     /* load the LP: zero objective, maximise (toggled per cell below) */
     h = Highs_create();
     Highs_setBoolOptionValue(h, "output_flag", 0);
+#ifdef TAUARGUS_MAX_THREADS
+    Highs_setIntOptionValue(h, "threads", TAUARGUS_MAX_THREADS);
+#endif
     Highs_setBoolOptionValue(h, "log_to_console", 0);
 
     st = Highs_passLp(h,

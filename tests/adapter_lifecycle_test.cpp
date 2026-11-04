@@ -85,6 +85,11 @@ int main()
     {
         JJLPptr lp = load_lp((const double[]){ 1.0, 2.0, 3.0 });
         CHECK(lp != (JJLPptr)0);
+#ifdef TAUARGUS_MAX_THREADS
+        HighsInt threads = 0;
+        CHECK(Highs_getIntOptionValue(lp, "threads", &threads) == kHighsStatusOk);
+        CHECK(threads == TAUARGUS_MAX_THREADS);
+#endif
         CHECK(JJtest_shadowCount() == 1);
         double c[8];
         read_costs(lp, 0, 2, c);

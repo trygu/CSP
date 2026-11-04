@@ -168,6 +168,9 @@ unsigned colnamespace, unsigned rownamespace, unsigned rimnamespace
     void* H = Highs_create();
     if (!H) return NULL;
     Highs_setBoolOptionValue(H, "output_flag", 0);
+#ifdef TAUARGUS_MAX_THREADS
+    Highs_setIntOptionValue(H, "threads", TAUARGUS_MAX_THREADS);
+#endif
 
     HighsInt mac = numcols, mar = numrows;
     /* The CSP stores the matrix in column-wise sparse form where matbeg[k]
