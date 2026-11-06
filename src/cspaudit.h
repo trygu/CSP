@@ -10,8 +10,10 @@
 /* p0=0, p1=50, p2=50, p3=0):                                           */
 /*   - Variables: every JJ cell with status 'u' (primary) or 'm'        */
 /*     (secondary), in ascending cell-index order.                      */
-/*   - Bounds: [Int(LBound), Int(UBound)] per cell, taken straight      */
-/*     from the JJ cell line (p0=0 branch of the legacy bounds code).   */
+/*   - Bounds: [LBound, UBound] per cell, taken straight from the       */
+/*     JJ cell line (p0=0 branch of the legacy bounds code). The        */
+/*     legacy Int() cast is dropped: a no-op on integer tables, but     */
+/*     it clips fractional bounds and makes the audit LP infeasible.    */
 /*   - Constraints: the JJ restrictions that contain at least one       */
 /*     suppressed cell; safe-cell contributions are moved to the        */
 /*     right-hand side.  All rows are equalities.                       */

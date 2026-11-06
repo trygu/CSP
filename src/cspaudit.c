@@ -231,9 +231,13 @@ int TauAuditJj(const char *jjfile,
         if (is_suppressed(cells[i].status)) {
             var_of[i] = nvar;
             var_cell[nvar] = i;
-            /* legacy Int() truncates toward zero */
-            clb[nvar] = (double)(long)cells[i].lo;
-            cub[nvar] = (double)(long)cells[i].hi;
+            /* Use the JJ bounds as-is. The legacy intervalle Int()
+               cast is a no-op on integer tables (bounds there are
+               integer-valued) but clips fractional bounds, which can
+               drop a bound below the value an equality margin
+               demands and make the audit LP infeasible. */
+            clb[nvar] = cells[i].lo;
+            cub[nvar] = cells[i].hi;
             nvar++;
         }
         else {

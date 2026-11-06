@@ -125,4 +125,7 @@ if(TAUARGUS_CSP_BUILD_TESTS)
     target_include_directories(csp_cut_hash_tests
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
     add_test(NAME cut_hash COMMAND csp_cut_hash_tests)
+    add_executable(csp_audit_fractional_tests tests/audit_fractional_test.cpp)
+    target_link_libraries(csp_audit_fractional_tests PRIVATE tauargus_csp)
+    add_test(NAME audit_fractional COMMAND csp_audit_fractional_tests)
 endif()
