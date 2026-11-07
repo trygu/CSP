@@ -458,7 +458,11 @@ int  PPCSPoptimize(IProgressListener* ProgressListener)
 
     while( read_prob() ){
 
-        if( CSPerror() || seconds()-t0 > MAX_TIME ){
+        /* MAX_TIME <= 0 means no time limit: front-ends pass 0 when the
+           user omits MaxComputingTime (OPT(TabNo)). The legacy host
+           always supplied a positive value, so the bare check below
+           fired immediately for an unlimited run. */
+        if( CSPerror() || (MAX_TIME > 0.0 && seconds()-t0 > MAX_TIME) ){
             unload_lp();
             goto OUT;
         }
@@ -476,7 +480,7 @@ int  PPCSPoptimize(IProgressListener* ProgressListener)
         ntail = 0;
         while( ceil(lowerb-ZERO) < upperb-ZERO ) {
 
-            if( CSPerror() || seconds()-t0 > MAX_TIME ){
+            if( CSPerror() || (MAX_TIME > 0.0 && seconds()-t0 > MAX_TIME) ){
                 unload_lp();
                 goto OUT;
             }
@@ -542,7 +546,7 @@ JUMP:
             std::cout << "***  Iter = " << iterations << " ; Nrows = " << nrows << " ;";
             std::cout << " Time = " << t1 << " sec." << std::endl;
 #endif
-            if ( t1 > MAX_TIME ) 
+            if ( MAX_TIME > 0.0 && t1 > MAX_TIME )
             {
                 int res = 0;
 
@@ -595,7 +599,7 @@ OUT:
     if (CSPerror()){
         std::cout << "ERROR: SDC run aborted (CSP error " << CSPerror()
                   << ") after " << cpu << " sec." << std::endl;
-    } else if ( cpu>MAX_TIME ){
+    } else if ( MAX_TIME > 0.0 && cpu>MAX_TIME ){
         std::cout << "TIME LIMIT EXCEEDED: SDC best solution = ";
         cpu = -MAX_TIME;
     }else{

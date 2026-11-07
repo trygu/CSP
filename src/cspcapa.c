@@ -64,7 +64,7 @@ int        separa_capacity(int        *card,CONSTRAINT **stack)
         /* An LP failure (CSPexit) or the time limit stops the run at
            the next level: legacy exit(1) ended the process here, and a
            single pass of this loop must not blow past MAX_TIME. */
-        if( CSPerror() || seconds()-t0 > MAX_TIME ) break;
+        if( CSPerror() || (MAX_TIME > 0.0 && seconds()-t0 > MAX_TIME) ) break;
         pro = prot_level+l;
         if( !sleep[l] ){
 			index = pro->sen->var->index;
