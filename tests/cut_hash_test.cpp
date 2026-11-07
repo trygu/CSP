@@ -1,7 +1,12 @@
 #include <cstdlib>
 #include "Cspdefns.h"
-#include "CSPGLOB2.H"
 #include "cspsep.h"
+
+/* The cut-pool globals live in the csp library. On Windows that is a DLL
+ * whose exported symbols are functions, so the test seeds and reads the
+ * pool through these accessors instead of the data symbols. */
+void JJtest_seedCutPool(int n, CONSTRAINT **pool, int max_pool, double zero);
+int JJtest_cutPoolRows(void);
 
 int main() {
     VARIABLE variables[2] = {};
@@ -16,10 +21,7 @@ int main() {
     original.coef = coefficients;
     original.rhs = 1;
     CONSTRAINT *pool[8] = {};
-    rows = pool;
-    nrows = 0;
-    MAX_CUTS_POOL = 8;
-    ZERO = 1e-9;
+    JJtest_seedCutPool(0, pool, 8, 1e-9);
     std::srand(123);
     const int expected = std::rand();
     std::srand(123);
@@ -27,20 +29,20 @@ int main() {
     if (std::rand() != expected) return 2;
 
     CONSTRAINT duplicate = original;
-    if (new_row(&duplicate) != 0 || nrows != 1) return 3;
+    if (new_row(&duplicate) != 0 || JJtest_cutPoolRows() != 1) return 3;
     VARIABLE *reversed[] = {variables + 1, variables};
     double reversed_coefficients[] = {2, 1};
     duplicate.stack = reversed;
     duplicate.coef = reversed_coefficients;
-    if (new_row(&duplicate) != 0 || nrows != 1) return 4;
+    if (new_row(&duplicate) != 0 || JJtest_cutPoolRows() != 1) return 4;
     double scaled[] = {2, 4};
     duplicate.stack = stack;
     duplicate.coef = scaled;
     duplicate.rhs = 2;
-    if (new_row(&duplicate) != 0 || nrows != 1) return 5;
+    if (new_row(&duplicate) != 0 || JJtest_cutPoolRows() != 1) return 5;
     double different[] = {1, 3};
     CONSTRAINT other = original;
     other.coef = different;
-    if (new_row(&other) != 1 || nrows != 2) return 6;
+    if (new_row(&other) != 1 || JJtest_cutPoolRows() != 2) return 6;
     return 0;
 }

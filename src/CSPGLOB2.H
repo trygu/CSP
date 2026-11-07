@@ -12,23 +12,6 @@
 #include <string>
 /* Global variables for UGFLP */
 
-/* On Windows the DLL must export the four data globals the cut-hash
- * test references through this header: /EXPORT:*
- * (WINDOWS_EXPORT_ALL_SYMBOLS) exports the functions but skips the
- * data symbols, so the test link fails with LNK2019. The export
- * comes from the matching __declspec(dllexport) on the definitions
- * in Cspmain.c; TAUARGUS_CSP_BUILDING_DLL (set by CMake) is defined
- * only for the DLL's own translation units, never for the tests. */
-#if defined(_WIN32)
-  #if defined(TAUARGUS_CSP_BUILDING_DLL)
-    #define CSP_GLOB_EXPORT __declspec(dllexport)
-  #else
-    #define CSP_GLOB_EXPORT
-  #endif
-#else
-  #define CSP_GLOB_EXPORT
-#endif
-
 extern int            Rncells;    /* number of cells after reduction      */
 extern int            Rnsums;     /* number of sums after reduction       */
 extern double         *Rrhs;      /* RHS for sums after reduction         */
@@ -36,8 +19,8 @@ extern double         *Rrhs;      /* RHS for sums after reduction         */
 extern int            ncols;      /* number of cells in the table         */
 extern VARIABLE       *columns;   /* potential variables                  */
 
-CSP_GLOB_EXPORT extern int            nrows;      /* number of current constraints        */
-CSP_GLOB_EXPORT extern CONSTRAINT     **rows;     /* potential constraints                */
+extern int            nrows;      /* number of current constraints        */
+extern CONSTRAINT     **rows;     /* potential constraints                */
 
 extern int            mac;        /* number of current columns in the LP  */
 extern VARIABLE       **cind;     /* real variables (in LP)               */
@@ -97,12 +80,12 @@ extern char* fsdcnetlp;
 extern char* fsdclp;
 extern char* fpartial;
 extern char* fmpsnet;
-CSP_GLOB_EXPORT extern double ZERO;
+extern double ZERO;
 extern double INF;
 extern double MAX_TIME;
 extern int MAX_COLS_LP;
 extern int MAX_ROWS_LP;
-CSP_GLOB_EXPORT extern int MAX_CUTS_POOL;
+extern int MAX_CUTS_POOL;
 extern int MAX_CUTS_ITER;
 extern double MIN_VIOLA;
 extern double MAX_SLACK;

@@ -44,19 +44,34 @@
 std::streambuf *psbuf, *backup;
 std::ofstream filestr;
 
-/* Strong definitions for the four globals the cut-hash test
-   references through the import library. The C-style common symbols
-   the plain header declarations used to create are not exported from
-   the MSVC DLL: /EXPORT:* (WINDOWS_EXPORT_ALL_SYMBOLS) picks up the
-   functions but skips the data, so the test link fails with LNK2019.
-   CSP_GLOB_EXPORT (CSPGLOB2.H) marks the definitions
-   __declspec(dllexport) when building the DLL, which exports them on
-   MSVC; it is a no-op elsewhere, where these definitions simply
-   replace the common symbols. */
-CSP_GLOB_EXPORT int nrows = 0;
-CSP_GLOB_EXPORT CONSTRAINT **rows = NULL;
-CSP_GLOB_EXPORT double ZERO = 0.0;
-CSP_GLOB_EXPORT int MAX_CUTS_POOL = 0;
+/* Single definitions for the four cut-pool globals used throughout the
+   csp sources. They were previously C-style common symbols (plain
+   header declarations, no definition); the test accessors below need
+   a real home for them, so Cspmain.c owns the one definition. */
+int nrows = 0;
+CONSTRAINT **rows = NULL;
+double ZERO = 0.0;
+int MAX_CUTS_POOL = 0;
+
+#ifdef TAUARGUS_CSP_UNIT_TEST
+/* Test-only access to the cut-pool globals for cut_hash_test. The test
+   executable links the csp library; on Windows that is a DLL whose
+   exported symbols are functions (data symbols are not reliably
+   exported), so the test seeds the pool through this setter and reads
+   the row count through this getter instead of touching the globals. */
+void JJtest_seedCutPool(int n, CONSTRAINT **pool, int max_pool, double zero)
+{
+    nrows = n;
+    rows = pool;
+    MAX_CUTS_POOL = max_pool;
+    ZERO = zero;
+}
+
+int JJtest_cutPoolRows(void)
+{
+    return nrows;
+}
+#endif
 
 /*  PROTOTYPES OF FUNCTIONS  */
 
