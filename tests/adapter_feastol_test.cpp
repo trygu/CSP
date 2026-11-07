@@ -4,11 +4,12 @@
 // redundant equations: the same totals appear as row right-hand sides
 // that were computed in different floating-point addition orders, so
 // the system can be infeasible by ~1e-6 (absolute) from rounding
-// alone. The legacy CPLEX backend ran with EPRIMALLIM = 1e-4 (the
-// CPLEX default primal feasibility tolerance), under which these
-// models solve as feasible. HiGHS's default of 1e-7 rejects them and
-// the run fails at the first separator level on the platforms whose
-// branch-and-bound path produces such a network.
+// alone. The legacy CPLEX backend set no feasibility tolerance, so
+// it ran at the CPLEX 7.5 default (EPRHS = 1e-6), whose row scaling
+// effectively accepted these models; HiGHS at 1e-6 rejects them and
+// the run fails at the first separator level, so the adapter runs at
+// 1e-4 to restore the legacy effective acceptance (documented
+// deviation, orchestration docs/d2.6-alignment.md).
 //
 // The values below are a real failing dump (sdcnet.lp from a modular
 // batch on HiGHS 1.15.1): the c1 implied by rows r0 and r3 differs by

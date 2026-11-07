@@ -3,10 +3,11 @@
 // Real tables carry relations whose right-hand sides are the same
 // totals computed in different floating-point addition orders, so the
 // table is mutually inconsistent by ~1e-6 (absolute) from rounding
-// alone. The legacy audit ran on CPLEX with EPRIMALLIM = 1e-4 (the
-// CPLEX default primal feasibility tolerance), under which the audit
-// LPs solve. HiGHS's default of 1e-7 declares them infeasible and the
-// whole audit aborts (rc -1) on tables the legacy audit accepted.
+// alone. The legacy audit (intervalle.exe) accepted such tables;
+// HiGHS at its 1e-6 default declares the audit LP infeasible and the
+// whole audit aborts (rc -1) on tables the legacy audit accepted, so
+// the audit runs at 1e-4 to restore the legacy effective acceptance
+// (documented deviation, orchestration docs/d2.6-alignment.md).
 //
 // The numbers below mirror a real failing dump (sdcnet.lp from a
 // modular batch on HiGHS 1.15.1): the implied value of the suppressed
