@@ -61,13 +61,24 @@ static void jj_shadow_delcols(const void* lp, HighsInt mac, const HighsInt* mask
 #ifdef TAUARGUS_CSP_UNIT_TEST
 static int test_fail_next_dual_lp = 0;
 
-/* Test-only: make the next dual LP solve fail, as if HiGHS returned an
- * error. Dual solves only happen inside branch-and-bound (the initial
- * heuristic uses primal solves), so this reproduces a mid-run LP
- * failure. */
+/* Test-only: make the next B&B dual LP solve fail, as if HiGHS
+ * returned an error. B&B dual solves only happen inside
+ * branch-and-bound (the initial heuristic uses primal solves), so
+ * this reproduces a mid-run LP failure on the solve_lp path. */
 int JJtest_failNextDualLp(void)
 {
     test_fail_next_dual_lp = 1;
+    return 0;
+}
+
+static int test_fail_next_net_lp = 0;
+
+/* Test-only: make the next protection-level network LP solve fail.
+ * The network solves run inside capacity separation, a different
+ * failure site than the B&B solve_lp path above. */
+int JJtest_failNextNetLp(void)
+{
+    test_fail_next_net_lp = 1;
     return 0;
 }
 #endif
@@ -122,7 +133,19 @@ static int JJ_status(void* lp)
     }
 }
 
-/* Solve the LP with the dual simplex method. Returns 0 on success. */
+/* Run the dual simplex solve. Returns 0 on success. */
+static int JJ_dual_run(void* lp)
+{
+    Highs_setStringOptionValue(lp, "dual_feasibility_tolerance", "1e-7");
+    HighsInt st = Highs_run(lp);
+    if (st == kHighsStatusError) return 1;
+    int ms = (int)Highs_getModelStatus(lp);
+    if (ms == kHighsModelStatusUnbounded || ms == kHighsModelStatusInfeasible)
+        return 1;
+    return 0;
+}
+
+/* Solve the B&B LP with the dual simplex method. Returns 0 on success. */
 static int JJ_dual_solve(void* lp)
 {
 #ifdef TAUARGUS_CSP_UNIT_TEST
@@ -131,13 +154,19 @@ static int JJ_dual_solve(void* lp)
         return 1;
     }
 #endif
-    Highs_setStringOptionValue(lp, "dual_feasibility_tolerance", "1e-7");
-    HighsInt st = Highs_run(lp);
-    if (st == kHighsStatusError) return 1;
-    int ms = (int)Highs_getModelStatus(lp);
-    if (ms == kHighsModelStatusUnbounded || ms == kHighsModelStatusInfeasible)
+    return JJ_dual_run(lp);
+}
+
+/* Solve a protection-level network LP. Returns 0 on success. */
+static int JJ_net_solve(void* lp)
+{
+#ifdef TAUARGUS_CSP_UNIT_TEST
+    if (test_fail_next_net_lp) {
+        test_fail_next_net_lp = 0;
         return 1;
-    return 0;
+    }
+#endif
+    return JJ_dual_run(lp);
 }
 
 /* Solve the LP with the primal simplex method. Returns 0 on success. */
@@ -188,12 +217,16 @@ unsigned colnamespace, unsigned rownamespace, unsigned rimnamespace
     void* H = Highs_create();
     if (!H) return NULL;
     Highs_setBoolOptionValue(H, "output_flag", 0);
-    /* The legacy CPLEX backend ran with EPRIMALLIM = 1e-4 (the CPLEX
-     * default primal feasibility tolerance). The network LPs carry
-     * redundant equations whose right-hand sides are the same totals
-     * in different floating-point addition orders, so they can be
-     * infeasible by ~1e-6 (absolute); the legacy tolerance accepted
-     * that, HiGHS's default of 1e-7 rejects it. */
+    /* The legacy CPLEX backend set no feasibility tolerance, so it
+     * ran at the CPLEX 7.5 default (EPRHS = 1e-6); its internal row
+     * scaling made that effectively accept real tables whose
+     * redundant relations are inconsistent by ~1e-6 (the same
+     * totals rounded in different floating-point addition orders).
+     * HiGHS at 1e-6 rejects the captured production dump of exactly
+     * such a table (verified empirically), so 1e-4 restores the
+     * legacy effective acceptance. Documented deviation from strict
+     * 1e-6 parity, see the orchestration record
+     * docs/d2.6-alignment.md. */
     Highs_setDoubleOptionValue(H, "primal_feasibility_tolerance", 1e-4);
 #ifdef TAUARGUS_MAX_THREADS
     Highs_setIntOptionValue(H, "threads", TAUARGUS_MAX_THREADS);
@@ -292,7 +325,7 @@ int JJnetopt (JJLPptr lp, int *netstatus_p, int *numnodes_p, int *numarcs_p, int
     *numnodes_p = 0;
     *numarcs_p  = 0;
     *itcnt_p    = 0;
-    int rc = JJ_dual_solve(lp);
+    int rc = JJ_net_solve(lp);
     *netstatus_p = (rc == 0) ? 0 : 1101;
     return *netstatus_p;
 }

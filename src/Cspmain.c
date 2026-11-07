@@ -493,6 +493,13 @@ int  PPCSPoptimize(IProgressListener* ProgressListener)
             separa(&lcuts,stack);
             tseparation += seconds()-t1;
 
+            /* A failure inside separation (the per-level network
+               solves) unwinds before any further node work. */
+            if( CSPerror() ){
+                unload_lp();
+                goto OUT;
+            }
+
             if ( lcuts==0 ) {
                  old_ub = upperb;
 /**

@@ -12,12 +12,15 @@
 //
 // The values below are a real failing dump (sdcnet.lp from a modular
 // batch on HiGHS 1.15.1): the c1 implied by rows r0 and r3 differs by
-// ~1.05e-6.
+// ~1.05e-6. Also checked: the network-solve path reports a failed
+// solve as a nonzero netopt result (1101).
 
 #include <highs/interfaces/highs_c_api.h>
 #include "Jjsolver.h"
 
 #include <cstdio>
+
+int JJtest_failNextNetLp(void);
 
 static int failures = 0;
 
@@ -58,6 +61,15 @@ int main(void)
     int rc = JJdualopt(lp);
     CHECK(rc == 0);
     CHECK(JJgetstat(lp) == JJ_OPTIMAL);
+
+    /* The protection-level network path must surface a failed solve
+       as a nonzero netopt result (the host records CSPexit
+       EXIT_LPSOLVER on that; Cspnet.c). */
+    JJtest_failNextNetLp();
+    int netstatus = 0, nnodes = 0, narcs = 0, iters = 0;
+    rc = JJnetopt(lp, &netstatus, &nnodes, &narcs, &iters);
+    CHECK(rc != 0);
+    CHECK(netstatus == 1101);
 
     JJfreeprob(&lp);
 
