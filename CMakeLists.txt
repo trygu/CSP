@@ -122,9 +122,19 @@ if(TAUARGUS_CSP_BUILD_TESTS)
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
     target_include_directories(csp_adapter_feastol_tests
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
+    add_executable(csp_adapter_infinity_tests tests/adapter_infinity_test.cpp)
+    target_link_libraries(csp_adapter_infinity_tests PRIVATE tauargus_csp)
+    target_include_directories(csp_adapter_infinity_tests
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
+    add_executable(csp_adapter_infeasible_tests tests/adapter_infeasible_test.cpp)
+    target_link_libraries(csp_adapter_infeasible_tests PRIVATE tauargus_csp)
+    target_include_directories(csp_adapter_infeasible_tests
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
     add_test(NAME adapter_lifecycle COMMAND csp_adapter_lifecycle_tests)
     add_test(NAME adapter_bounds COMMAND csp_adapter_bounds_tests)
     add_test(NAME adapter_feastol COMMAND csp_adapter_feastol_tests)
+    add_test(NAME adapter_infinity COMMAND csp_adapter_infinity_tests)
+    add_test(NAME adapter_infeasible COMMAND csp_adapter_infeasible_tests)
     add_executable(csp_cut_hash_tests tests/cut_hash_test.cpp)
     target_link_libraries(csp_cut_hash_tests PRIVATE tauargus_csp)
     target_include_directories(csp_cut_hash_tests

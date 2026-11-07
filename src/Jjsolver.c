@@ -133,16 +133,17 @@ static int JJ_status(void* lp)
     }
 }
 
-/* Run the dual simplex solve. Returns 0 on success. */
+/* Run the dual simplex solve. Returns 0 when the solver ran to a
+ * definitive model status (optimal, infeasible, unbounded, limits);
+ * only a failed solver call returns 1. The legacy CPLEX-era
+ * implementation passed the solver status through the same way, and
+ * the callers read the result through JJgetstat: solve_lp's status
+ * switch handles JJ_INFEASIBLE/JJ_UNBOUNDED explicitly, so those
+ * statuses must not be turned into failures here. */
 static int JJ_dual_run(void* lp)
 {
     Highs_setStringOptionValue(lp, "dual_feasibility_tolerance", "1e-7");
-    HighsInt st = Highs_run(lp);
-    if (st == kHighsStatusError) return 1;
-    int ms = (int)Highs_getModelStatus(lp);
-    if (ms == kHighsModelStatusUnbounded || ms == kHighsModelStatusInfeasible)
-        return 1;
-    return 0;
+    return Highs_run(lp) == kHighsStatusError ? 1 : 0;
 }
 
 /* Solve the B&B LP with the dual simplex method. Returns 0 on success. */
@@ -169,15 +170,12 @@ static int JJ_net_solve(void* lp)
     return JJ_dual_run(lp);
 }
 
-/* Solve the LP with the primal simplex method. Returns 0 on success. */
+/* Solve the LP with the primal simplex method. Same contract as
+ * JJ_dual_run: 0 on any definitive model status, 1 only when the
+ * solver call itself fails. */
 static int JJ_primal_solve(void* lp)
 {
-    HighsInt st = Highs_run(lp);
-    if (st == kHighsStatusError) return 1;
-    int ms = (int)Highs_getModelStatus(lp);
-    if (ms == kHighsModelStatusUnbounded || ms == kHighsModelStatusInfeasible)
-        return 1;
-    return 0;
+    return Highs_run(lp) == kHighsStatusError ? 1 : 0;
 }
 #endif
 
@@ -228,6 +226,16 @@ unsigned colnamespace, unsigned rownamespace, unsigned rimnamespace
      * 1e-6 parity, see the orchestration record
      * docs/d2.6-alignment.md. */
     Highs_setDoubleOptionValue(H, "primal_feasibility_tolerance", 1e-4);
+    /* The legacy B&B LP (cspsolve.c) carries a dummy column 0 with
+     * objective 1.0E+20 in every node LP. HiGHS's default
+     * infinite_cost is exactly 1e20, and it treats any cost with
+     * magnitude greater than or equal to that as infinite, so at the
+     * default the dummy objective is infinite and the node LP reports
+     * ObjectiveBound/UnboundedOrInfeasible (JJ 1101, surfaced as 7002)
+     * instead of solving to its finite optimum. Raising the limit above
+     * the largest legacy magnitude keeps 1.0E+20 a finite coefficient,
+     * matching the CPLEX backend the port replaced. */
+    Highs_setDoubleOptionValue(H, "infinite_cost", 1.0E+25);
 #ifdef TAUARGUS_MAX_THREADS
     Highs_setIntOptionValue(H, "threads", TAUARGUS_MAX_THREADS);
 #endif
@@ -326,7 +334,15 @@ int JJnetopt (JJLPptr lp, int *netstatus_p, int *numnodes_p, int *numarcs_p, int
     *numarcs_p  = 0;
     *itcnt_p    = 0;
     int rc = JJ_net_solve(lp);
-    *netstatus_p = (rc == 0) ? 0 : 1101;
+    /* The net path keeps the legacy CPXnetopt contract at its call
+     * site (Cspnet.c): 0 for an optimal network, nonzero (1101) for
+     * anything else, including a solver error or a definitive
+     * infeasible/unbounded status, which the caller aborts on. */
+    if (rc != 0 || JJgetstat(lp) != JJ_OPTIMAL) {
+        *netstatus_p = 1101;
+        return *netstatus_p;
+    }
+    *netstatus_p = 0;
     return *netstatus_p;
 }
 
