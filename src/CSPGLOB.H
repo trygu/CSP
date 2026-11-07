@@ -12,14 +12,9 @@
 
 /* Global variables for CSP */
 
-/* On Windows the DLL must export the data symbols the tests reference
- * through CSPGLOB2.H; WINDOWS_EXPORT_ALL_SYMBOLS does not pick up BSS
- * globals on MSVC. Cspmain.c is the only includer of this header. */
-#if defined(_WIN32)
-#define CSP_GLOB_EXPORT __declspec(dllexport)
-#else
-#define CSP_GLOB_EXPORT
-#endif
+/* nrows, rows, ZERO and MAX_CUTS_POOL are declared in CSPGLOB2.H
+ * (with the Windows export macro) and defined in Cspmain.c; they are
+ * not declared here so Cspmain.c sees exactly one declaration of each. */
 
 int            Rncells;    /* number of cells after reduction      */
 int            Rnsums;     /* number of sums after reduction       */
@@ -33,12 +28,6 @@ PROT_LEVEL     *prot_level;/* list of protection levels            */
 
 int            ncols;      /* number of cells in the table         */
 VARIABLE       *columns;   /* potential variables                  */
-
-/* extern: the definitions live in Cspmain.c. The plain declarations
- * used to create C common symbols, which MSVC does not export from
- * the DLL (uninitialized data is skipped by /EXPORT:*). */
-CSP_GLOB_EXPORT extern int            nrows;      /* number of current constraints        */
-CSP_GLOB_EXPORT extern CONSTRAINT     **rows;     /* potential constraints                */
 
 int            mac;        /* number of current columns in the LP  */
 VARIABLE       **cind;     /* real variables (in LP)               */
@@ -94,12 +83,10 @@ char* fCSPlog;
 char* fsdclp;
 char* fpartial;
 char* fmpsnet;
-CSP_GLOB_EXPORT extern double ZERO;
 double INF;
 double MAX_TIME;
 int MAX_COLS_LP;
 int MAX_ROWS_LP;
-CSP_GLOB_EXPORT extern int MAX_CUTS_POOL;
 int MAX_CUTS_ITER;
 double MIN_VIOLA;
 double MAX_SLACK;

@@ -80,6 +80,13 @@ target_compile_definitions(tauargus_csp PUBLIC VSCIP)
 # the Python bindings), so export all symbols from the Windows DLL.
 if(WIN32)
     set_target_properties(tauargus_csp PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+    # TAUARGUS_CSP_BUILDING_DLL lets CSPGLOB2.H's CSP_GLOB_EXPORT macro
+    # switch to __declspec(dllexport) in the DLL's own translation units
+    # (the four data globals the cut-hash test imports); the test
+    # executables build without it and get plain extern declarations.
+    if(BUILD_SHARED_LIBS)
+        target_compile_definitions(tauargus_csp PRIVATE TAUARGUS_CSP_BUILDING_DLL)
+    endif()
 endif()
 
 target_link_libraries(tauargus_csp PUBLIC highs::highs)

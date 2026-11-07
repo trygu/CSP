@@ -44,19 +44,19 @@
 std::streambuf *psbuf, *backup;
 std::ofstream filestr;
 
-/* Explicit strong definitions for the four globals the cut-hash test
-   references through the import library. The declarations in
-   CSPGLOB.H only create C-style common symbols: GCC and Clang merge
-   them, but MSVC keeps them in BSS and its /EXPORT:* (set by
-   WINDOWS_EXPORT_ALL_SYMBOLS) exports the functions while skipping
-   the uninitialized data, so the test link fails with LNK2019.
-   Initialized definitions live in .data and export on every
-   toolchain; on GCC and Clang they simply absorb the common symbol
-   in this TU (the only includer of CSPGLOB.H). */
-int nrows = 0;
-CONSTRAINT **rows = NULL;
-double ZERO = 0.0;
-int MAX_CUTS_POOL = 0;
+/* Strong definitions for the four globals the cut-hash test
+   references through the import library. The C-style common symbols
+   the plain header declarations used to create are not exported from
+   the MSVC DLL: /EXPORT:* (WINDOWS_EXPORT_ALL_SYMBOLS) picks up the
+   functions but skips the data, so the test link fails with LNK2019.
+   CSP_GLOB_EXPORT (CSPGLOB2.H) marks the definitions
+   __declspec(dllexport) when building the DLL, which exports them on
+   MSVC; it is a no-op elsewhere, where these definitions simply
+   replace the common symbols. */
+CSP_GLOB_EXPORT int nrows = 0;
+CSP_GLOB_EXPORT CONSTRAINT **rows = NULL;
+CSP_GLOB_EXPORT double ZERO = 0.0;
+CSP_GLOB_EXPORT int MAX_CUTS_POOL = 0;
 
 /*  PROTOTYPES OF FUNCTIONS  */
 
