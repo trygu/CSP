@@ -597,6 +597,12 @@ static double    protection_2level(VARIABLE  *var,int type,double goal,int mode)
     printf(" ... solving LP:stat=%d opt=%f tit=%d Iit=%d mac=%d mar=%d nz=%d\n",
 JJgetstat(Nlp),(float)opt,JJgetitc(Nlp),JJgetitci(Nlp),JJgetmac(Nlp),JJgetmar(Nlp),JJgetmat(Nlp));
 */
+    /* The legacy CPLEX backend reported definitive infeasible/
+       unbounded models through the return code; the HiGHS wrapper
+       returns 0 for any definitive status and reports it through
+       JJgetstat. Both paths must take the same branch: drop the
+       level (opt = INF, below BIGVALUE) and keep the current
+       suppression set. */
     if ( JJoptimize(Nlp) ){
         netstatus = JJgetstat(Nlp);
         //puts(" CELL=%s  type=%d  prot=%f (lpstat=%d)",var->name,type,goal,netstatus);
@@ -604,7 +610,7 @@ JJgetstat(Nlp),(float)opt,JJgetitc(Nlp),JJgetitci(Nlp),JJgetmac(Nlp),JJgetmar(Nl
 		if( netstatus==JJ_INForUNB || netstatus==JJ_INFEASIBLE || netstatus==JJ_UNBOUNDED ){
             opt =INF;
 			goto FUERA;
-		}			
+		}
 
         //puts(" it was not possible to solve with -optimize- (lpstat=%d)",netstatus);
         std::cout << " it was not possible to solve with -optimize- (lpstat=" << netstatus << ")";
@@ -621,9 +627,14 @@ JJgetstat(Nlp),(float)opt,JJgetitc(Nlp),JJgetitci(Nlp),JJgetmac(Nlp),JJgetmar(Nl
     netstatus = JJgetstat(Nlp);
     lpiter = JJgetitc(Nlp);
 
+    if( netstatus==JJ_INForUNB || netstatus==JJ_INFEASIBLE || netstatus==JJ_UNBOUNDED ){
+        opt = INF;
+        goto FUERA;
+    }
+
     if( netstatus != JJ_OPTIMAL && netstatus != 5/*11*/ && lpiter != MAXLPITER ){  //changed by Salome 08/02/12
 
-#ifdef STAMP        
+#ifdef STAMP
         std::cout << "WARNING: network stat=" << JJgetstat(Nlp) << std::endl;
 #endif
         opt = BIGVALUE;
