@@ -83,7 +83,8 @@ int main()
 
     // T1-T6: one LP through the full edit lifecycle.
     {
-        JJLPptr lp = load_lp((const double[]){ 1.0, 2.0, 3.0 });
+        const double c3[3] = { 1.0, 2.0, 3.0 };
+        JJLPptr lp = load_lp(c3);
         CHECK(lp != (JJLPptr)0);
 #ifdef TAUARGUS_MAX_THREADS
         HighsInt threads = 0;
@@ -181,7 +182,8 @@ int main()
     // T7: free/recreate. The shadow is erased on free and reinstalled on
     // load; looped so the allocator can reuse the previous address.
     for (int it = 0; it < 64; it++) {
-        JJLPptr lp = load_lp((const double[]){ 5.0, 5.0, 5.0 });
+        const double c3[3] = { 5.0, 5.0, 5.0 };
+        JJLPptr lp = load_lp(c3);
         CHECK(JJtest_shadowCount() == 1);
         CHECK(Highs_run(lp) == kHighsStatusOk);
         CHECK(hstat(lp) == kHighsModelStatusOptimal);
@@ -193,7 +195,8 @@ int main()
         CHECK(JJtest_shadowCount() == 0);
     }
     {
-        JJLPptr lp = load_lp((const double[]){ 5.0, 5.0, 5.0 });
+        const double c3[3] = { 5.0, 5.0, 5.0 };
+        JJLPptr lp = load_lp(c3);
         CHECK(Highs_run(lp) == kHighsStatusOk);
         double c[1];
         read_costs(lp, 0, 0, c);
@@ -207,7 +210,8 @@ int main()
     // T5b: JJdelsetcols compacts the shadow the same way as JJdelcols
     // (non-contiguous delete set, column index shift).
     {
-        JJLPptr lp = load_lp((const double[]){ 1.0, 2.0, 3.0 });
+        const double c3[3] = { 1.0, 2.0, 3.0 };
+        JJLPptr lp = load_lp(c3);
         CHECK(lp != (JJLPptr)0);
         CHECK(Highs_run(lp) == kHighsStatusOk);
         CHECK(hstat(lp) == kHighsModelStatusOptimal);
@@ -230,7 +234,8 @@ int main()
 
     // T8: JJchgobj batch path: skip and apply are per element.
     {
-        JJLPptr lp = load_lp((const double[]){ 1.0, 2.0, 3.0 });
+        const double c3[3] = { 1.0, 2.0, 3.0 };
+        JJLPptr lp = load_lp(c3);
         CHECK(Highs_run(lp) == kHighsStatusOk);
         CHECK(hstat(lp) == kHighsModelStatusOptimal);
         int idx[2] = { 0, 1 };

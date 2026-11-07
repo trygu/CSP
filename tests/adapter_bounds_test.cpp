@@ -59,7 +59,8 @@ static void read_bounds(JJLPptr lp, int first, int last, double* lo, double* hi)
 
 int main()
 {
-    JJLPptr lp = load_lp((const double[]){ 1.0, 2.0, 3.0 });
+    const double c3[3] = { 1.0, 2.0, 3.0 };
+    JJLPptr lp = load_lp(c3);
     CHECK(lp != (JJLPptr)0);
     int idx[1] = { 0 };
     char lu;
