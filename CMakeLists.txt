@@ -112,14 +112,19 @@ if(TAUARGUS_CSP_BUILD_TESTS)
     target_link_libraries(csp_adapter_lifecycle_tests PRIVATE tauargus_csp)
     add_executable(csp_adapter_bounds_tests tests/adapter_bounds_test.cpp)
     target_link_libraries(csp_adapter_bounds_tests PRIVATE tauargus_csp)
+    add_executable(csp_adapter_feastol_tests tests/adapter_feastol_test.cpp)
+    target_link_libraries(csp_adapter_feastol_tests PRIVATE tauargus_csp)
     # Jjsolver.h includes cspmain.h, which needs the hitas callback
     # headers (a PRIVATE include of the library, so not inherited).
     target_include_directories(csp_adapter_lifecycle_tests
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
     target_include_directories(csp_adapter_bounds_tests
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
+    target_include_directories(csp_adapter_feastol_tests
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
     add_test(NAME adapter_lifecycle COMMAND csp_adapter_lifecycle_tests)
     add_test(NAME adapter_bounds COMMAND csp_adapter_bounds_tests)
+    add_test(NAME adapter_feastol COMMAND csp_adapter_feastol_tests)
     add_executable(csp_cut_hash_tests tests/cut_hash_test.cpp)
     target_link_libraries(csp_cut_hash_tests PRIVATE tauargus_csp)
     target_include_directories(csp_cut_hash_tests
@@ -128,4 +133,15 @@ if(TAUARGUS_CSP_BUILD_TESTS)
     add_executable(csp_audit_fractional_tests tests/audit_fractional_test.cpp)
     target_link_libraries(csp_audit_fractional_tests PRIVATE tauargus_csp)
     add_test(NAME audit_fractional COMMAND csp_audit_fractional_tests)
+    add_executable(csp_audit_feastol_tests tests/audit_feastol_test.cpp)
+    target_link_libraries(csp_audit_feastol_tests PRIVATE tauargus_csp)
+    add_test(NAME audit_feastol COMMAND csp_audit_feastol_tests)
+    add_executable(csp_exit_tests tests/csp_exit_test.cpp)
+    target_link_libraries(csp_exit_tests PRIVATE tauargus_csp)
+    target_include_directories(csp_exit_tests
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
+    add_test(NAME csp_exit COMMAND csp_exit_tests)
+    # The forced-failure case must terminate; a run that retries the
+    # failed LP solve forever is a failure, so cap the whole test.
+    set_tests_properties(csp_exit PROPERTIES TIMEOUT 60)
 endif()

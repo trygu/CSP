@@ -23,6 +23,23 @@ static int (*external_heur)(void) = {NULL};
 static int (*external_exit)(int) = {NULL};
 static int (*external_time)(void) = {NULL};
 
+/* First error of the current run. Legacy code called exit(1) at fatal
+   points; hosts never registered an exit handler, so the flag is the
+   real error channel: the optimizer checks it at each node of the
+   search and the host maps a nonzero CSPoptimize result to its
+   failure codes. First error wins, so the root cause survives. */
+static int csp_error = 0;
+
+int CSPerror(void)
+{
+    return csp_error;
+}
+
+void CSPclearerror(void)
+{
+    csp_error = 0;
+}
+
 int CSPstoptime()
 {
     if ( external_time==NULL )
@@ -50,6 +67,8 @@ int CSPnewsolution()
 int CSPexit(int flag)
 
 {
+    if( csp_error==0 )
+        csp_error = flag;
     if( external_exit==NULL )
         return 0;
     else

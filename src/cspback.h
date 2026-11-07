@@ -4,6 +4,8 @@ int CSPnewsolution(void);
 int CSPexit(int);
 int CSPdefinestop(int (*)(void));
 int CSPdefineheur(int (*)(void));
+int CSPerror(void);
+void CSPclearerror(void);
 
 #if defined(TAUARGUS_STATIC)
     #define EXPORTFUNC

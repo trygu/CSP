@@ -69,6 +69,10 @@ void       separa(int        *card,CONSTRAINT **stack)
 
     separa_capacity(card,stack);
 
+    /* A failure inside capacity separation (the per-level network
+       solves) unwinds the whole separation pass. */
+    if( CSPerror() ) return;
+
 #ifdef PARTIAL    
     if( *card ) return;
 

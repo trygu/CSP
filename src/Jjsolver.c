@@ -59,6 +59,20 @@ static void jj_shadow_delcols(const void* lp, HighsInt mac, const HighsInt* mask
 }
 
 #ifdef TAUARGUS_CSP_UNIT_TEST
+static int test_fail_next_dual_lp = 0;
+
+/* Test-only: make the next dual LP solve fail, as if HiGHS returned an
+ * error. Dual solves only happen inside branch-and-bound (the initial
+ * heuristic uses primal solves), so this reproduces a mid-run LP
+ * failure. */
+int JJtest_failNextDualLp(void)
+{
+    test_fail_next_dual_lp = 1;
+    return 0;
+}
+#endif
+
+#ifdef TAUARGUS_CSP_UNIT_TEST
 /* Test-only: desynchronize the shadow from the model so the next column
  * delete exercises the drift fallback (the shadow must be dropped, and
  * changes must then be forwarded, never mis-skipped). */
@@ -111,6 +125,12 @@ static int JJ_status(void* lp)
 /* Solve the LP with the dual simplex method. Returns 0 on success. */
 static int JJ_dual_solve(void* lp)
 {
+#ifdef TAUARGUS_CSP_UNIT_TEST
+    if (test_fail_next_dual_lp) {
+        test_fail_next_dual_lp = 0;
+        return 1;
+    }
+#endif
     Highs_setStringOptionValue(lp, "dual_feasibility_tolerance", "1e-7");
     HighsInt st = Highs_run(lp);
     if (st == kHighsStatusError) return 1;
@@ -168,6 +188,13 @@ unsigned colnamespace, unsigned rownamespace, unsigned rimnamespace
     void* H = Highs_create();
     if (!H) return NULL;
     Highs_setBoolOptionValue(H, "output_flag", 0);
+    /* The legacy CPLEX backend ran with EPRIMALLIM = 1e-4 (the CPLEX
+     * default primal feasibility tolerance). The network LPs carry
+     * redundant equations whose right-hand sides are the same totals
+     * in different floating-point addition orders, so they can be
+     * infeasible by ~1e-6 (absolute); the legacy tolerance accepted
+     * that, HiGHS's default of 1e-7 rejects it. */
+    Highs_setDoubleOptionValue(H, "primal_feasibility_tolerance", 1e-4);
 #ifdef TAUARGUS_MAX_THREADS
     Highs_setIntOptionValue(H, "threads", TAUARGUS_MAX_THREADS);
 #endif

@@ -347,6 +347,14 @@ int TauAuditJj(const char *jjfile,
     /* load the LP: zero objective, maximise (toggled per cell below) */
     h = Highs_create();
     Highs_setBoolOptionValue(h, "output_flag", 0);
+    /* The legacy audit ran on CPLEX, whose default primal feasibility
+       tolerance (EPRIMALLIM = 1e-4) accepted real tables whose
+       relations are mutually inconsistent by ~1e-6 (the same totals
+       rounded in different addition orders). HiGHS's default of 1e-7
+       declares the audit LP infeasible on such tables and aborts the
+       whole audit. Match the legacy default; same value as the JJ
+       adapter in Jjsolver.c. */
+    Highs_setDoubleOptionValue(h, "primal_feasibility_tolerance", 1e-4);
 #ifdef TAUARGUS_MAX_THREADS
     Highs_setIntOptionValue(h, "threads", TAUARGUS_MAX_THREADS);
 #endif

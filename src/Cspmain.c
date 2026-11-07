@@ -328,6 +328,13 @@ int  PPCSPoptimize(IProgressListener* ProgressListener)
     t0=seconds();
     tstart=t0;
     
+    /* The problem load (a separate call) may have failed; do not run
+       the optimizer on a broken problem. */
+    if (CSPerror()){
+        std::cout << "ERROR: SDC aborted: problem load failed (CSP error " << CSPerror() << ")" << std::endl;
+        return CSPerror();
+    }
+    
     root        = 1;
     nbr         = 0;
     tprep       = 0;
@@ -450,7 +457,12 @@ int  PPCSPoptimize(IProgressListener* ProgressListener)
     load_branch_tree();
 
     while( read_prob() ){
-        
+
+        if( CSPerror() || seconds()-t0 > MAX_TIME ){
+            unload_lp();
+            goto OUT;
+        }
+
         if (ProgressListener != NULL)
         {
                 ProgressListener->UpdateUB(upperb);
@@ -463,6 +475,11 @@ int  PPCSPoptimize(IProgressListener* ProgressListener)
         nbr++;
         ntail = 0;
         while( ceil(lowerb-ZERO) < upperb-ZERO ) {
+
+            if( CSPerror() || seconds()-t0 > MAX_TIME ){
+                unload_lp();
+                goto OUT;
+            }
 
             if( CSPstopcondition() ){   // Check whether an external stop
                 unload_lp();
@@ -568,7 +585,10 @@ OUT:
 //#ifdef STAMP
 
     cpu = seconds() - t0;
-    if ( cpu>MAX_TIME ){
+    if (CSPerror()){
+        std::cout << "ERROR: SDC run aborted (CSP error " << CSPerror()
+                  << ") after " << cpu << " sec." << std::endl;
+    } else if ( cpu>MAX_TIME ){
         std::cout << "TIME LIMIT EXCEEDED: SDC best solution = ";
         cpu = -MAX_TIME;
     }else{
@@ -596,8 +616,9 @@ OUT:
     fclose(fich);
 //#endif 
     
-    //return(0);
-    return(bad_heuristic);
+    // The error flag is the real error channel: a failed run returns the
+    // first recorded CSPexit code, a clean run returns bad_heuristic.
+    return( CSPerror() ? CSPerror() : bad_heuristic );
 }
 
 /*******************************************************************/
@@ -609,6 +630,9 @@ std::string filenameA;   // Salome added 31/01/2014
 int PPCSPloadprob(int nsums_,double *rhs_,int ncells_,double *data_,int  *weight_,char *status_,double *lpl_,double *upl_,double *lb_,double *ub_,char **names_,int  *nlist_,int  *listcell_,signed char *listcoef_)
 
 {
+    /* A load starts a new run: any error recorded by a previous run
+       must not leak into this one. */
+    CSPclearerror();
     int      h,k,l,nz,nl,np;
     VARIABLE *col;
     struct   CELDA *c;
