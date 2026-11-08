@@ -271,10 +271,32 @@ static VARIABLE *variable_branching(int type)
     card = 0;
     for(k=0;k<nsupport;k++)
         if( fabs( support[k]->val - 0.5 ) < FRAC-ZERO ) card++;
-    if( card==0 ){        
-        std::cout << "ERROR: no fractional variables (FRAC=" << FRAC << std::endl;
-        write_sol(fsolution);
-        CSPexit(EXIT_ERROR); //exit(1);
+    if( card==0 ){
+        /* The LP optimum is integral, yet integer_solution()
+           rejected the incumbent: the protection-level flow check
+           failed for that integral solution (the LP relaxation is
+           weaker than the integer problem). There is no fractional
+           column to branch on, so branch on an integral one and
+           force it to change: the standard branch-and-bound
+           treatment of an integral-but-rejected node. The legacy
+           guard aborted here; HiGHS reaches such nodes on real
+           tables (legacy CPLEX never produced one). */
+        for(k=0;k<nsupport && col==NULL;k++)
+            if( support[k]->stat==0 && support[k]->val>ZERO )
+                col = support[k];
+        if( col==NULL )
+            for(k=1;k<mac && col==NULL;k++)
+                if( cind[k]->stat==0 )
+                    col = cind[k];
+        if( col==NULL ){
+            /* Every LP column is bound-fixed: this node is fully
+               determined and its incumbent was rejected, so no
+               solution in this node improves the incumbent.
+               Prune the node. */
+            lowerb = (double)upperb;
+            return(NULL);
+        }
+        return( col );
     }
 
     switch(type){
