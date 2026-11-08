@@ -588,12 +588,10 @@ void free_col(int index,double *bd)
     int    ind[2];
     char   lu[2] = {'L','U'};
     double value[2];
-#ifdef STAMP
-    if(cell2net[index] == -1){
-        std::cout << "ERROR: variable " << index << " not in the NLP" << std::endl;
-        CSPexit(EXIT_ERROR); //exit(1);
-    }
-#endif
+    /* A cell that is not in this network has no column to free.
+       The legacy check ran under STAMP only; without it, -1 was
+       passed as a column index to the solver (out of range). */
+    if(cell2net[index] == -1) return;
     j = cell2net[index];
     JJgetbdl(Nlp,bd,j,j);
     JJgetbdu(Nlp,bd+1,j,j);
@@ -622,13 +620,27 @@ void unfree_col(int index,double *bd)
 {
     int ind[2];
     char lu[2] = {'L','U'};
-#ifdef STAMP
-    if(cell2net[index] == -1){
-        std::cout << "ERROR: variable " << index << " not in the NLP" << std::endl;
-        CSPexit(EXIT_ERROR); //exit(1);
-    }
-#endif
+    /* Pair of free_col: a no-op when the cell is not in the network,
+       so the free/unfree pair stays consistent. */
+    if(cell2net[index] == -1) return;
     ind[0] = ind[1] = cell2net[index];
     JJchgbds(Nlp,2,ind,lu,bd);
 }
+
+#ifdef TAUARGUS_CSP_UNIT_TEST
+/* Test-only: point the network state at a small LP and cell mapping
+   so free_col/unfree_col can be exercised without a full SDC
+   problem. mapping holds ncells entries: an NLP column (0-based) or
+   -1 for a cell that is not in the network. */
+int JJtest_netFreeColState(JJLPptr lp, int ncells, const int *mapping)
+{
+    free((void *)cell2net);
+    cell2net = NULL;
+    Nlp = lp;
+    cell2net = (int *)malloc((size_t)ncells * sizeof(int));
+    if( cell2net == NULL ) return 1;
+    for( int i = 0; i < ncells; i++ ) cell2net[i] = mapping[i];
+    return 0;
+}
+#endif
 
