@@ -108,7 +108,7 @@ static void write_prob()
     col = columns;
     for(k=0;k<ncols;k++){
          if( col->stat != FIX_LB )
-             fprintf(pfile," %p %d",col,col->stat);
+             fprintf(pfile," %p %d",(void *)col,col->stat);
          col++;
     }
     for( cont=0 , k=1 ; k<mar ; k++ )
@@ -116,7 +116,7 @@ static void write_prob()
     fprintf(pfile," %d",cont);
     for(k=1;k<mar;k++)
          if( rind[k]->stat ==0 )
-             fprintf(pfile," %p",rind[k]);
+             fprintf(pfile," %p",(void *)rind[k]);
     fclose(pfile);
 }
 
@@ -156,6 +156,7 @@ int read_prob()
     long           offset;
     struct BRANCH  *ptr;
     VARIABLE       *col;
+    void           *pc;
     FILE           *pfile;
 //    float          t1;
 
@@ -182,7 +183,8 @@ int read_prob()
          columns[k].stat = FIX_LB;
     if (fscanf(pfile,"%d",&cont) != 1) goto invalid_branch;
     for(k=0;k<cont;k++){
-         if (fscanf(pfile,"%p %d",&col,&l) != 2) goto invalid_branch;
+         if (fscanf(pfile,"%p %d",&pc,&l) != 2) goto invalid_branch;
+         col = (VARIABLE *)pc;
          col->stat = l;
     }
     if (fscanf(pfile,"%d",&lcuts) != 1) goto invalid_branch;
@@ -194,7 +196,8 @@ int read_prob()
               CSPexit(EXIT_MEMO); //exit(1);
          }
          for(k=0;k<lcuts;k++){
-              if (fscanf(pfile,"%p",stack+k) != 1) goto invalid_branch;
+              if (fscanf(pfile,"%p",&pc) != 1) goto invalid_branch;
+              stack[k] = (CONSTRAINT *)pc;
               stack[k]->stat = 0;
          }
     }
