@@ -159,4 +159,10 @@ if(TAUARGUS_CSP_BUILD_TESTS)
     target_include_directories(csp_net_freecol_tests
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
     add_test(NAME net_freecol COMMAND csp_net_freecol_tests)
+    add_executable(csp_protection_flow_tests tests/protection_flow_test.cpp)
+    target_link_libraries(csp_protection_flow_tests PRIVATE tauargus_csp)
+    target_include_directories(csp_protection_flow_tests
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
+    add_test(NAME protection_flow COMMAND csp_protection_flow_tests)
+    set_tests_properties(protection_flow PROPERTIES TIMEOUT 60)
 endif()

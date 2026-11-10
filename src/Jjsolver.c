@@ -316,6 +316,18 @@ unsigned colnamespace, unsigned rownamespace, unsigned rimnamespace
     return 0;
 }
 
+/* Set a double-valued solver option on a loaded model. Returns 0 on
+ * success, 1 when the solver rejects the option (HiGHS returns a
+ * nonzero status, including for unknown option names, without
+ * erroring). The B&B node LP and the capacity-separator network LP
+ * keep the 1e-4 feasibility tolerance set by JJloadprob; the
+ * protection-level network LP (cspheur.c) restores the legacy 1e-6
+ * there. */
+int JJsetoptd (JJLPptr lp, const char* name, double value)
+{
+    return Highs_setDoubleOptionValue(lp, name, value) == kHighsStatusOk ? 0 : 1;
+}
+
 /* ------------------------------- solve ---------------------------------- */
 
 int JJoptimize (JJLPptr lp)

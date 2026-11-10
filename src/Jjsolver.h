@@ -292,6 +292,7 @@ int
 int JJloadctype (JJLPptr, char*);
 int JJmipoptimize (JJLPptr);
 int JJgetmx (JJLPptr, double *, int, int);
+int JJsetoptd (JJLPptr, const char*, double);
 /*
 JJLPptr
    JJloadmprob   (char *, int, int, int, int, double *, double *,

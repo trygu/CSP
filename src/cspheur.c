@@ -473,8 +473,22 @@ static void   load_2network(char *status)
                        NULL, NULL, NULL, NULL, NULL, NULL,
                        macsz, marsz, matsz, 0, 0, 0, 0, 0);
 
-        if ( Nlp == NULL ){                
+        if ( Nlp == NULL ){
                 std::cout << "ERROR: There is not enought memory for the first LP" << std::endl;
+                CSPexit(EXIT_LPSOLVER); //exit(1);
+        }
+        /* The protection-level network LP runs at the legacy CPLEX
+           feasibility tolerance, not the 1e-4 that JJloadprob sets
+           for the data-valued models. Its rows are zero-rhs balance
+           equations, so rounding can never make them inconsistent,
+           and the loose tolerance is actively harmful: a forced
+           protection flow below 1e-4 is accepted as a plain
+           violation of those rows, the LP reports optimal with
+           objective 0, and no flow is rerouted through the other
+           cells, so no secondary suppression is left to mark (the
+           MOD D=0 regression). */
+        if (JJsetoptd(Nlp, "primal_feasibility_tolerance", 1.0e-6) != 0){
+                std::cout << "ERROR: could not set the network LP feasibility tolerance" << std::endl;
                 CSPexit(EXIT_LPSOLVER); //exit(1);
         }
 #ifdef STAMP    
@@ -572,7 +586,7 @@ static double    protection_2level(VARIABLE  *var,int type,double goal,int mode)
     lu = 'U';
     bd = 0.0;
     JJchgbds(Nlp,1,&index2,&lu,&bd);
-    
+
 /*
     if ( JJnetopt(Nlp,&netstatus,&netnodes,&netarcs,&netiter) ){
 		if( netstatus==JJ_INForUNB ){
@@ -647,7 +661,7 @@ JJgetstat(Nlp),(float)opt,JJgetitc(Nlp),JJgetitci(Nlp),JJgetmac(Nlp),JJgetmar(Nl
                 std::cout << "There is not enough memory for RED COST" << std::endl;
                 CSPexit(EXIT_MEMO); //exit(1);
             }
-            if ( JJgetx(Nlp, x, 0, mac-1) ){                
+            if ( JJgetx(Nlp, x, 0, mac-1) ){
                 std::cout << "ERROR: no solution is avalaible " << std::endl;
                 CSPexit(EXIT_LPSOLVER); //exit(1);
             }
@@ -657,7 +671,7 @@ JJgetstat(Nlp),(float)opt,JJgetitc(Nlp),JJgetitci(Nlp),JJgetmac(Nlp),JJgetmar(Nl
                     columns[ net2cell[l] ].val = 1.0;
                     JJchgcoef(Nlp,-1,2*l,0.0);
                     JJchgcoef(Nlp,-1,2*l+1,0.0);
-                }                
+                }
             free( x );
             x = NULL; /*PWOF*/
         }
