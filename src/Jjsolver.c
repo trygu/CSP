@@ -133,6 +133,19 @@ static int JJ_status(void* lp)
     }
 }
 
+/* The legacy CPLEX backend capped simplex iterations per solve with
+ * CPXsetintparam(CPX_PARAM_ITERATIONS, val), which applied to every
+ * subsequent solve on the handle. The heuristic (cspheur.c) sets
+ * JJlpiterlimit(1000) before the constructive phase so each
+ * protection-level network LP is solved to a 1000-iteration effort
+ * (the caller then accepts the current bound as the level when
+ * lpiter == MAXLPITER), and resets to 1000000 after. The ported
+ * equivalent is HiGHS's simplex_iteration_limit, applied at each
+ * solve entry. Without this, HiGHS drives the degenerate network LPs
+ * to full optimality, which on real tables takes orders of magnitude
+ * longer than the legacy per-solve effort bound. */
+static int g_simplex_iter_limit = 1000000000; /* HiGHS default */
+
 /* Run the dual simplex solve. Returns 0 when the solver ran to a
  * definitive model status (optimal, infeasible, unbounded, limits);
  * only a failed solver call returns 1. The legacy CPLEX-era
@@ -143,6 +156,7 @@ static int JJ_status(void* lp)
 static int JJ_dual_run(void* lp)
 {
     Highs_setStringOptionValue(lp, "dual_feasibility_tolerance", "1e-7");
+    Highs_setIntOptionValue(lp, "simplex_iteration_limit", (HighsInt)g_simplex_iter_limit);
     return Highs_run(lp) == kHighsStatusError ? 1 : 0;
 }
 
@@ -175,6 +189,7 @@ static int JJ_net_solve(void* lp)
  * solver call itself fails. */
 static int JJ_primal_solve(void* lp)
 {
+    Highs_setIntOptionValue(lp, "simplex_iteration_limit", (HighsInt)g_simplex_iter_limit);
     return Highs_run(lp) == kHighsStatusError ? 1 : 0;
 }
 #endif
@@ -395,9 +410,13 @@ int JJgetitci (JJLPptr lp)
     return JJgetitc(lp);
 }
 
+/* Set the per-solve simplex iteration cap for all subsequent solves
+ * (legacy CPXsetintparam(CPX_PARAM_ITERATIONS, val) contract; see
+ * g_simplex_iter_limit above). Non-positive values keep the cap as
+ * it was. */
 int JJlpiterlimit (int val)
 {
-    (void)val;
+    if (val > 0) g_simplex_iter_limit = val;
     return 0;
 }
 
