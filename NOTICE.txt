@@ -1,0 +1,45 @@
+CSP: copyright, licence and source notice
+
+Copyright M.D. Montes de Oca & J.J. Salazar.
+Copyright 2026 Trygve Tatsuya Falch (original fork contributions).
+
+This fork is distributed under the European Union Public Licence, version 1.2
+(EUPL-1.2). The full text is in LICENCE.
+
+Upstream code was released under EUPL 1.1. Article 5 of EUPL 1.1 permits
+redistribution under a later EUPL version unless the original work expressly
+limits distribution to that version only. This distribution exercises that
+permission. The upstream notices reviewed do not state such an "only"
+limitation. Original copyright and EUPL 1.1 notices are retained; a copy of
+the original licence is in LICENSES/EUPL-1.1.txt.
+
+Original contributions and modifications by Trygve Tatsuya Falch are also
+licensed under EUPL-1.2. Separately identified third-party material retains
+its original notices and terms. This notice grants no rights beyond those
+held by the respective licensors.
+
+Source code: https://github.com/trygu/CSP
+Upstream: https://github.com/sdcTools/CSP
+The repository's source and history identify the fork modifications and dates.
+Licensing clarification recorded 2026-11-12; this notice does not replace
+original source notices or change their historical dates.
+
+CSP historical header ambiguity
+-------------------------------
+Fifteen source files, including src/Cspmain.c, retain the 2001 wording
+"to be used only inside tau-ARGUS". The upstream sdcTools/CSP project added
+an EUPL 1.1 grant to its README on 2016-06-24:
+https://github.com/sdcTools/CSP/commit/c370c044a2fe1ae0130e5d19dc3f31436bafa863
+https://github.com/sdcTools/CSP/blob/9305d4c7802bac60c98c2dc69653c5c99b643184/README.md
+
+This fork relies on that upstream EUPL grant as its distribution basis.
+The earlier wording is inconsistent with the unrestricted-purpose grant
+in Article 2 of standard EUPL 1.1. A stale header is a plausible explanation,
+but the fork maintainer has not received rights-holder confirmation
+resolving the inconsistency as of 2026-11-12. Adding LICENCE does not itself
+resolve the upstream authorship/permission question. The historical
+headers have therefore been preserved and this ambiguity is disclosed.
+Discussion: https://github.com/trygu/pytauargus/issues/26
+
+The solver dependency HiGHS is separately licensed under MIT and its bundled
+third-party terms. Those notices must accompany any redistributed HiGHS code.
