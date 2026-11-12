@@ -44,5 +44,10 @@ Produces `libtauargus_csp.dylib` (shared) and links `highs::highs`.
 
 ## License
 
-© M.D. Montes de Oca & J.J. Salazar. Distributed under the EUPL v1.1 /
-EUPL-1.2. See the top-level repository for the full notice.
+This fork is distributed under **EUPL-1.2**; see [LICENCE](LICENCE).
+Original upstream EUPL 1.1 and copyright notices are retained. The later-version
+permission in Article 5 of EUPL 1.1 is explained in [NOTICE.txt](NOTICE.txt).
+
+Some source files retain an earlier restriction to use inside tau-ARGUS.
+The upstream project-wide EUPL grant and the unresolved historical-header
+ambiguity are documented in [NOTICE.txt](NOTICE.txt).
