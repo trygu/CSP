@@ -99,6 +99,10 @@ install(TARGETS tauargus_csp
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
 )
+install(DIRECTORY src/
+    DESTINATION include/tauargus_csp
+    FILES_MATCHING PATTERN "*.h"
+)
 
 # Adapter tests (run by the parent repo's dev loop,
 # scripts/dev-test.sh). The lifecycle test hooks
