@@ -158,6 +158,12 @@ if(TAUARGUS_CSP_BUILD_TESTS)
     # The forced-failure case must terminate; a run that retries the
     # failed LP solve forever is a failure, so cap the whole test.
     set_tests_properties(csp_exit PROPERTIES TIMEOUT 60)
+    add_executable(csp_log_lifecycle_tests tests/csp_log_lifecycle_test.cpp)
+    target_link_libraries(csp_log_lifecycle_tests PRIVATE tauargus_csp)
+    target_include_directories(csp_log_lifecycle_tests
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../hitas/src)
+    add_test(NAME csp_log_lifecycle COMMAND csp_log_lifecycle_tests)
+    set_tests_properties(csp_log_lifecycle PROPERTIES TIMEOUT 60)
     add_executable(csp_net_freecol_tests tests/net_freecol_test.cpp)
     target_link_libraries(csp_net_freecol_tests PRIVATE tauargus_csp)
     target_include_directories(csp_net_freecol_tests

@@ -44,6 +44,22 @@
 std::streambuf *psbuf, *backup;
 std::ofstream filestr;
 
+// Stop the solver log: restore the process stdout and close the log
+// file. The log is only needed while the solve runs; leaving the
+// stream open locks the file on Windows for the process lifetime and
+// keeps every module's std::cout going into the log. Called from
+// PPCSPfreeprob (the end of every solve path) and from the start of
+// PPCSPloadprob (stale state if a path skipped freeprob). Idempotent.
+static void CSPlog_stop()
+{
+    if (backup) {
+        std::cout.rdbuf(backup);
+        backup = NULL;
+    }
+    if (filestr.is_open())
+        filestr.close();
+}
+
 /* Single definitions for the four cut-pool globals used throughout the
    csp sources. They were previously C-style common symbols (plain
    header declarations, no definition); the test accessors below need
@@ -693,6 +709,10 @@ int PPCSPloadprob(int nsums_,double *rhs_,int ncells_,double *data_,int  *weight
     //filenameA = _getcwd(NULL, 0);
     //filenameA.append("\\logfile.txt");
     //filestr.open (filenameA.c_str());//logfile);     // Salome modified 31/01/2014
+    // A previous solve must have stopped the log in PPCSPfreeprob; if a
+    // path skipped it, stop it now so the redirect below starts from
+    // the real process stdout, not the previous log's buffer.
+    CSPlog_stop();
     filestr.open (fCSPlog);     /*PWOF to write logfile in temp-directory 03-02-2014*/
 
     backup = std::cout.rdbuf();     // back up cout's streambuf
@@ -1251,6 +1271,10 @@ static void  init_constraint_pool()
 
 int PPCSPfreeprob()
 {
+     // End of every solve path (success, error, exception): stop the
+     // log so the file is not left locked and std::cout goes back to
+     // the process stdout.
+     CSPlog_stop();
      int k;
      for(k=0;k<Rncells;k++){
          free( columns[k].name );
